@@ -1,6 +1,5 @@
 // src/pages/Blog.tsx
 import { useEffect, useMemo, useState } from "react";
-// ⬅️ removed: import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
@@ -11,20 +10,20 @@ type WPPost = {
   id: number;
   date: string;
   slug: string;
-  link: string; // ⬅️ add: canonical WP URL
+  link: string; // canonical WordPress URL
   title: { rendered: string };
   excerpt: { rendered: string };
   content?: { rendered: string };
   featured_media?: number;
-  jetpack_featured_media_url?: string;
+  jetpack_featured_media_url?: string; // optional Jetpack fallback
   _embedded?: {
     author?: { name: string }[];
-    "wp:featuredmedia"?: Array<
-      {
-        source_url?: string;
-        media_details?: { sizes?: Record<string, { source_url?: string }> };
-      } | any
-    >;
+    "wp:featuredmedia"?: Array<{
+      source_url?: string;
+      media_details?: {
+        sizes?: Record<string, { source_url?: string }>;
+      };
+    }>;
     "wp:term"?: { name: string }[][];
   };
 };
@@ -37,7 +36,7 @@ function stripHTML(html: string) {
   return tmp.textContent || tmp.innerText || "";
 }
 
-// Pick the best featured image URL safely
+// Safely pick the best featured image URL
 function getFeaturedSrc(p: WPPost) {
   const m = p._embedded?.["wp:featuredmedia"]?.[0] as any;
   return (
@@ -57,14 +56,14 @@ export default function Blog() {
   const [hasMore, setHasMore] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
 
-  // fetch a page of posts from WordPress
-  async function load(pageNum: number, cat?: string) {
+  // Fetch a page of posts from WordPress (keep full _embed)
+  async function load(pageNum: number) {
     setLoading(true);
     const base = `${WP_SITE}/wp-json/wp/v2/posts`;
     const params = new URLSearchParams({
       per_page: "6",
       page: String(pageNum),
-      _embed: "1", // keep full embed; don't use _fields so we keep image URLs + link
+      _embed: "1",
     });
     const res = await fetch(`${base}?${params.toString()}`);
     if (!res.ok) {
@@ -115,7 +114,7 @@ export default function Blog() {
   return (
     <div className="min-h-screen">
       <Header />
-      
+
       <Helmet>
         <title>HiveMind Blog</title>
         <meta name="description" content="Insights and updates from HiveMind." />
@@ -178,7 +177,7 @@ export default function Blog() {
                     {estimateRead(featured)}
                   </div>
                 </div>
-                {/* open canonical WP URL */}
+                {/* Open canonical WordPress URL */}
                 <a href={featured.link} className="inline-flex items-center gap-2 text-primary">
                   Read article <ArrowRight className="h-4 w-4" />
                 </a>
@@ -187,7 +186,8 @@ export default function Blog() {
               <div className="relative">
                 <img
                   src={getFeaturedSrc(featured) || "/api/placeholder/800/500"}
-                  alt=""
+                  alt={stripHTML(featured.title.rendered) || "Featured image"}
+                  loading="lazy"
                   className="w-full h-[300px] md:h-[360px] object-cover rounded-xl border border-glow"
                 />
                 <div className="absolute inset-0 rounded-xl glow"></div>
@@ -205,7 +205,8 @@ export default function Blog() {
               <article key={post.id} className="card-3d p-5">
                 <img
                   src={getFeaturedSrc(post) || "/api/placeholder/400/250"}
-                  alt=""
+                  alt={stripHTML(post.title.rendered) || "Post image"}
+                  loading="lazy"
                   className="w-full h-40 object-cover rounded-lg mb-4 border border-glow"
                 />
                 <div className="text-xs mb-2 text-muted-foreground">
@@ -249,7 +250,7 @@ export default function Blog() {
                 onClick={() => {
                   const next = page + 1;
                   setPage(next);
-                  load(next, activeCategory);
+                  load(next);
                 }}
               >
                 {loading ? "Loading…" : "Load More Articles"}
