@@ -12,3 +12,6 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://app.hivemindai.co.uk/sitemap.xml
+
