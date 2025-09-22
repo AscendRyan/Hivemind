@@ -66,7 +66,6 @@ export default function Blog() {
       page: String(pageNum),
       _embed: "1", // keep full embed; don't use _fields so we keep image URLs + link
     });
-    if (cat && cat !== "All") params.set("categories", "");
     const res = await fetch(`${base}?${params.toString()}`);
     if (!res.ok) {
       setLoading(false);
