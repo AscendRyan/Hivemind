@@ -1,6 +1,6 @@
 // src/pages/Blog.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+// ⬅️ removed: import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Calendar, Clock, ArrowRight, User } from "lucide-react";
@@ -10,19 +10,18 @@ type WPPost = {
   id: number;
   date: string;
   slug: string;
+  link: string; // ⬅️ add: canonical WP URL
   title: { rendered: string };
   excerpt: { rendered: string };
   content?: { rendered: string };
   featured_media?: number;
-  jetpack_featured_media_url?: string; // fallback Jetpack field
+  jetpack_featured_media_url?: string;
   _embedded?: {
     author?: { name: string }[];
     "wp:featuredmedia"?: Array<
       {
         source_url?: string;
-        media_details?: {
-          sizes?: Record<string, { source_url?: string }>;
-        };
+        media_details?: { sizes?: Record<string, { source_url?: string }> };
       } | any
     >;
     "wp:term"?: { name: string }[][];
@@ -45,7 +44,7 @@ function getFeaturedSrc(p: WPPost) {
     m?.media_details?.sizes?.medium_large?.source_url ||
     m?.media_details?.sizes?.large?.source_url ||
     m?.media_details?.sizes?.medium?.source_url ||
-    p.jetpack_featured_media_url || // Jetpack fallback
+    p.jetpack_featured_media_url ||
     ""
   );
 }
@@ -64,9 +63,9 @@ export default function Blog() {
     const params = new URLSearchParams({
       per_page: "6",
       page: String(pageNum),
-      _embed: "1", // keep full embed; do NOT use _fields here or you lose image URLs
+      _embed: "1", // keep full embed; don't use _fields so we keep image URLs + link
     });
-    if (cat && cat !== "All") params.set("categories", ""); // (simple client-side filter)
+    if (cat && cat !== "All") params.set("categories", "");
     const res = await fetch(`${base}?${params.toString()}`);
     if (!res.ok) {
       setLoading(false);
@@ -173,9 +172,10 @@ export default function Blog() {
                     {estimateRead(featured)}
                   </div>
                 </div>
-                <Link to={`/blog/${featured.slug}`} className="inline-flex items-center gap-2 text-primary">
+                {/* open canonical WP URL */}
+                <a href={featured.link} className="inline-flex items-center gap-2 text-primary">
                   Read article <ArrowRight className="h-4 w-4" />
-                </Link>
+                </a>
               </div>
 
               <div className="relative">
@@ -214,7 +214,7 @@ export default function Blog() {
                   </span>
                 </div>
                 <h3 className="text-lg font-semibold mb-2 line-clamp-2">
-                  <Link to={`/blog/${post.slug}`}>{stripHTML(post.title.rendered)}</Link>
+                  <a href={post.link}>{stripHTML(post.title.rendered)}</a>
                 </h3>
                 <div
                   className="text-muted-foreground mb-4 line-clamp-3"
@@ -225,9 +225,9 @@ export default function Blog() {
                     <Clock className="h-3 w-3" />
                     {estimateRead(post)}
                   </div>
-                  <Link to={`/blog/${post.slug}`} className="inline-flex items-center gap-1 text-primary">
+                  <a href={post.link} className="inline-flex items-center gap-1 text-primary">
                     Read <ArrowRight className="h-3 w-3" />
-                  </Link>
+                  </a>
                 </div>
               </article>
             ))}
