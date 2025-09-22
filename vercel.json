@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" },
+    { "source": "/", "has": [{ "type": "host", "value": "blog.hivemindai.co.uk" }], "destination": "/blog" },
+    { "source": "/", "has": [{ "type": "host", "value": "careers.hivemindai.co.uk" }], "destination": "/careers" }
   ]
 }
