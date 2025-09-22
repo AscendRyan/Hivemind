@@ -1,211 +1,245 @@
+// src/pages/Blog.tsx
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Calendar, Clock, ArrowRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const Blog = () => {
-  // Sample blog posts data
-  const blogPosts = [
-    {
-      id: 1,
-      title: "The Future of AI Automation in Business",
-      excerpt: "Discover how artificial intelligence is transforming business operations and what it means for the future of work.",
-      author: "Ryan Mitchell",
-      date: "2024-01-15",
-      readTime: "5 min read",
-      category: "AI Technology",
-      image: "/api/placeholder/400/250",
-      featured: true,
-    },
-    {
-      id: 2,
-      title: "5 Ways AI Can Revolutionize Your Lead Generation",
-      excerpt: "Learn practical strategies to implement AI-powered lead generation systems that deliver measurable results.",
-      author: "Sarah Johnson",
-      date: "2024-01-12",
-      readTime: "7 min read",
-      category: "Lead Generation",
-      image: "/api/placeholder/400/250",
-    },
-    {
-      id: 3,
-      title: "CRM Integration: Making Your Systems Work Together",
-      excerpt: "A comprehensive guide to integrating AI solutions with your existing CRM for maximum efficiency.",
-      author: "Michael Chen",
-      date: "2024-01-10",
-      readTime: "6 min read",
-      category: "CRM Integration",
-      image: "/api/placeholder/400/250",
-    },
-    {
-      id: 4,
-      title: "Marketing Automation Best Practices for 2024",
-      excerpt: "Stay ahead of the curve with the latest marketing automation strategies and AI-powered tools.",
-      author: "Emma Davis",
-      date: "2024-01-08",
-      readTime: "8 min read",
-      category: "Marketing",
-      image: "/api/placeholder/400/250",
-    },
-    {
-      id: 5,
-      title: "Custom AI Solutions: When Off-the-Shelf Isn't Enough",
-      excerpt: "Understanding when your business needs a custom AI solution and how to approach the development process.",
-      author: "Ryan Mitchell",
-      date: "2024-01-05",
-      readTime: "10 min read",
-      category: "Custom Solutions",
-      image: "/api/placeholder/400/250",
-    },
-    {
-      id: 6,
-      title: "Workflow Optimization Through Intelligent Automation",
-      excerpt: "Transform your business processes with smart automation strategies that adapt and improve over time.",
-      author: "Lisa Wang",
-      date: "2024-01-03",
-      readTime: "6 min read",
-      category: "Workflow",
-      image: "/api/placeholder/400/250",
-    },
-  ];
+type WPPost = {
+  id: number;
+  date: string;
+  slug: string;
+  title: { rendered: string };
+  excerpt: { rendered: string };
+  content?: { rendered: string };
+  _embedded?: {
+    author?: { name: string }[];
+    "wp:featuredmedia"?: { source_url?: string }[];
+    "wp:term"?: { name: string }[][];
+  };
+};
 
-  const categories = ["All", "AI Technology", "Lead Generation", "CRM Integration", "Marketing", "Custom Solutions", "Workflow"];
+const WP_SITE = "https://hivemindai.co.uk"; // <-- your WordPress site domain
+
+function stripHTML(html: string) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || "";
+}
+
+export default function Blog() {
+  const [posts, setPosts] = useState<WPPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  // fetch a page of posts from WordPress
+  async function load(pageNum: number, cat?: string) {
+    setLoading(true);
+    const base = `${WP_SITE}/wp-json/wp/v2/posts`;
+    const params = new URLSearchParams({
+      per_page: "6",
+      page: String(pageNum),
+      _embed: "1",
+      _fields:
+        "id,date,slug,title,excerpt,_embedded.wp:featuredmedia,_embedded.author,_embedded.wp:term",
+    });
+    if (cat && cat !== "All") params.set("categories", ""); // we filter client-side for simplicity
+    const res = await fetch(`${base}?${params.toString()}`);
+    if (!res.ok) {
+      setLoading(false);
+      setHasMore(false);
+      return;
+    }
+    const data: WPPost[] = await res.json();
+    if (pageNum === 1) setPosts(data);
+    else setPosts((old) => [...old, ...data]);
+    setHasMore(data.length > 0);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load(1);
+  }, []);
+
+  // categories from embedded terms
+  const categories = useMemo(() => {
+    const names = new Set<string>(["All"]);
+    posts.forEach((p) =>
+      (p._embedded?.["wp:term"] || []).forEach((group) =>
+        (group || []).forEach((t) => t?.name && names.add(t.name))
+      )
+    );
+    return Array.from(names);
+  }, [posts]);
+
+  const filtered = useMemo(() => {
+    if (activeCategory === "All") return posts;
+    return posts.filter((p) =>
+      (p._embedded?.["wp:term"] || [])
+        .flat()
+        .some((t) => t?.name === activeCategory)
+    );
+  }, [posts, activeCategory]);
+
+  const featured = filtered[0];
+  const rest = filtered.slice(1);
+
+  // crude read-time estimate (200 wpm)
+  const estimateRead = (p: WPPost) => {
+    const words = stripHTML(p.excerpt?.rendered || "").split(/\s+/).length + 200;
+    return `${Math.max(3, Math.round(words / 200))} min read`;
+  };
 
   return (
     <div className="min-h-screen">
       <Header />
-      
-      {/* Hero Section */}
+
+      {/* Hero */}
       <section className="pt-32 pb-16 px-6 relative overflow-hidden">
-        {/* Background elements */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-32 h-32 bg-primary/20 rounded-full animate-float"></div>
-          <div className="absolute top-40 right-20 w-24 h-24 bg-secondary/20 rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute bottom-40 left-1/4 w-40 h-40 bg-accent/20 rounded-full animate-float" style={{ animationDelay: '4s' }}></div>
-        </div>
+        <div className="container mx-auto max-w-6xl">
+          <h1 className="text-4xl md:text-5xl font-bold text-gradient-primary mb-4">
+            HiveMind Blog
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Insights and updates. Powered by our WordPress posts.
+          </p>
 
-        <div className="container mx-auto max-w-6xl relative z-10">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-primary/20 backdrop-blur-sm border border-primary/30 mb-6">
-              <span className="text-sm font-medium text-muted-foreground">Insights & Resources</span>
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-gradient-primary">
-              HiveMind Blog
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Stay updated with the latest insights, trends, and best practices in AI automation, business optimization, and digital transformation.
-            </p>
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex flex-wrap justify-center gap-3 mb-12">
-            {categories.map((category) => (
+          {/* Categories */}
+          <div className="flex gap-2 flex-wrap mt-8">
+            {categories.map((cat) => (
               <Button
-                key={category}
-                variant={category === "All" ? "default" : "outline"}
-                className={category === "All" ? "button-3d" : "glass-button-outline"}
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={cat === activeCategory ? "button-3d" : "glass-button-outline"}
                 size="sm"
               >
-                {category}
+                {cat}
               </Button>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Blog Posts Grid */}
-      <section className="pb-20 px-6">
-        <div className="container mx-auto max-w-6xl">
-          {/* Featured Post */}
-          {blogPosts.filter(post => post.featured).map((post) => (
-            <div key={post.id} className="card-3d p-8 mb-12">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                <div>
-                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium mb-4">
-                    Featured
-                  </div>
-                  <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gradient-primary">
-                    {post.title}
-                  </h2>
-                  <p className="text-lg text-muted-foreground mb-6">
-                    {post.excerpt}
-                  </p>
-                  <div className="flex items-center gap-6 text-sm text-muted-foreground mb-6">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {post.author}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(post.date).toLocaleDateString()}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      {post.readTime}
-                    </div>
-                  </div>
-                  <Button className="button-3d group">
-                    Read Article
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+      {/* Featured */}
+      {featured && (
+        <section className="px-6">
+          <div className="container mx-auto max-w-6xl">
+            <div className="card-3d p-8 mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div>
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium mb-4">
+                  Featured
                 </div>
-                <div className="lg:order-first">
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg border border-primary/30 flex items-center justify-center">
-                    <span className="text-muted-foreground">Featured Article Image</span>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gradient-primary">
+                  {stripHTML(featured.title.rendered)}
+                </h2>
+                <div
+                  className="text-lg text-muted-foreground mb-6"
+                  dangerouslySetInnerHTML={{ __html: featured.excerpt.rendered }}
+                />
+                <div className="flex items-center gap-6 text-sm text-muted-foreground mb-6">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {featured._embedded?.author?.[0]?.name || "—"}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(featured.date).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {estimateRead(featured)}
                   </div>
                 </div>
+                <Link to={`/blog/${featured.slug}`} className="inline-flex items-center gap-2 text-primary">
+                  Read article <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+
+              <div className="relative">
+                <img
+                  src={
+                    featured._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+                    "/api/placeholder/800/500"
+                  }
+                  alt=""
+                  className="w-full h-[300px] md:h-[360px] object-cover rounded-xl border border-glow"
+                />
+                <div className="absolute inset-0 rounded-xl glow"></div>
               </div>
             </div>
-          ))}
+          </div>
+        </section>
+      )}
 
-          {/* Regular Posts Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {blogPosts.filter(post => !post.featured).map((post) => (
-              <article key={post.id} className="glass-card group cursor-pointer">
-                <div className="aspect-video bg-gradient-to-br from-primary/10 to-secondary/10 rounded-t-lg border-b border-primary/20 flex items-center justify-center mb-6">
-                  <span className="text-muted-foreground text-sm">Article Image</span>
+      {/* Grid */}
+      <section className="pb-20 px-6">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rest.map((post) => (
+              <article key={post.id} className="card-3d p-5">
+                <img
+                  src={
+                    post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
+                    "/api/placeholder/400/250"
+                  }
+                  alt=""
+                  className="w-full h-40 object-cover rounded-lg mb-4 border border-glow"
+                />
+                <div className="text-xs mb-2 text-muted-foreground">
+                  <span className="inline-flex items-center gap-2">
+                    <User className="h-3 w-3" />
+                    {post._embedded?.author?.[0]?.name || "—"}
+                  </span>
+                  <span className="mx-2">•</span>
+                  <span className="inline-flex items-center gap-2">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(post.date).toLocaleDateString()}
+                  </span>
                 </div>
-                
-                <div className="p-6">
-                  <div className="inline-flex items-center px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
-                    {post.category}
+                <h3 className="text-lg font-semibold mb-2 line-clamp-2">
+                  <Link to={`/blog/${post.slug}`}>{stripHTML(post.title.rendered)}</Link>
+                </h3>
+                <div
+                  className="text-muted-foreground mb-4 line-clamp-3"
+                  dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+                />
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-3 w-3" />
+                    {estimateRead(post)}
                   </div>
-                  
-                  <h3 className="text-xl font-bold mb-3 text-foreground group-hover:text-primary transition-colors">
-                    {post.title}
-                  </h3>
-                  
-                  <p className="text-muted-foreground mb-4 line-clamp-3">
-                    {post.excerpt}
-                  </p>
-                  
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <User className="h-3 w-3" />
-                      {post.author}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3" />
-                      {post.readTime}
-                    </div>
-                  </div>
+                  <Link to={`/blog/${post.slug}`} className="inline-flex items-center gap-1 text-primary">
+                    Read <ArrowRight className="h-3 w-3" />
+                  </Link>
                 </div>
               </article>
             ))}
           </div>
 
-          {/* Load More Button */}
-          <div className="text-center mt-12">
-            <Button variant="outline" className="glass-button-outline">
-              Load More Articles
-            </Button>
-          </div>
+          {/* Load more */}
+          {hasMore && (
+            <div className="text-center mt-12">
+              <Button
+                variant="outline"
+                className="glass-button-outline"
+                disabled={loading}
+                onClick={() => {
+                  const next = page + 1;
+                  setPage(next);
+                  load(next, activeCategory);
+                }}
+              >
+                {loading ? "Loading…" : "Load More Articles"}
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
       <Footer />
     </div>
   );
-};
-
-export default Blog;
+}
