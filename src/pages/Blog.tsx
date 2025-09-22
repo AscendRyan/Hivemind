@@ -13,19 +13,41 @@ type WPPost = {
   title: { rendered: string };
   excerpt: { rendered: string };
   content?: { rendered: string };
+  featured_media?: number;
+  jetpack_featured_media_url?: string; // fallback Jetpack field
   _embedded?: {
     author?: { name: string }[];
-    "wp:featuredmedia"?: { source_url?: string }[];
+    "wp:featuredmedia"?: Array<
+      {
+        source_url?: string;
+        media_details?: {
+          sizes?: Record<string, { source_url?: string }>;
+        };
+      } | any
+    >;
     "wp:term"?: { name: string }[][];
   };
 };
 
-const WP_SITE = "https://hivemindai.co.uk"; // <-- your WordPress site domain
+const WP_SITE = "https://hivemindai.co.uk";
 
 function stripHTML(html: string) {
   const tmp = document.createElement("div");
   tmp.innerHTML = html;
   return tmp.textContent || tmp.innerText || "";
+}
+
+// Pick the best featured image URL safely
+function getFeaturedSrc(p: WPPost) {
+  const m = p._embedded?.["wp:featuredmedia"]?.[0] as any;
+  return (
+    m?.source_url ||
+    m?.media_details?.sizes?.medium_large?.source_url ||
+    m?.media_details?.sizes?.large?.source_url ||
+    m?.media_details?.sizes?.medium?.source_url ||
+    p.jetpack_featured_media_url || // Jetpack fallback
+    ""
+  );
 }
 
 export default function Blog() {
@@ -42,11 +64,9 @@ export default function Blog() {
     const params = new URLSearchParams({
       per_page: "6",
       page: String(pageNum),
-      _embed: "1",
-      _fields:
-        "id,date,slug,title,excerpt,_embedded.wp:featuredmedia,_embedded.author,_embedded.wp:term",
+      _embed: "1", // keep full embed; do NOT use _fields here or you lose image URLs
     });
-    if (cat && cat !== "All") params.set("categories", ""); // we filter client-side for simplicity
+    if (cat && cat !== "All") params.set("categories", ""); // (simple client-side filter)
     const res = await fetch(`${base}?${params.toString()}`);
     if (!res.ok) {
       setLoading(false);
@@ -160,10 +180,7 @@ export default function Blog() {
 
               <div className="relative">
                 <img
-                  src={
-                    featured._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
-                    "/api/placeholder/800/500"
-                  }
+                  src={getFeaturedSrc(featured) || "/api/placeholder/800/500"}
                   alt=""
                   className="w-full h-[300px] md:h-[360px] object-cover rounded-xl border border-glow"
                 />
@@ -181,10 +198,7 @@ export default function Blog() {
             {rest.map((post) => (
               <article key={post.id} className="card-3d p-5">
                 <img
-                  src={
-                    post._embedded?.["wp:featuredmedia"]?.[0]?.source_url ||
-                    "/api/placeholder/400/250"
-                  }
+                  src={getFeaturedSrc(post) || "/api/placeholder/400/250"}
                   alt=""
                   className="w-full h-40 object-cover rounded-lg mb-4 border border-glow"
                 />
