@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 // ⬅️ removed: import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { Helmet } from "react-helmet-async";
 import { Calendar, Clock, ArrowRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -115,6 +116,12 @@ export default function Blog() {
   return (
     <div className="min-h-screen">
       <Header />
+      
+      <Helmet>
+        <title>HiveMind Blog</title>
+        <meta name="description" content="Insights and updates from HiveMind." />
+        <link rel="canonical" href="https://app.hivemindai.co.uk/blog" />
+      </Helmet>
 
       {/* Hero */}
       <section className="pt-32 pb-16 px-6 relative overflow-hidden">
