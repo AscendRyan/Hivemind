@@ -1,6 +1,5 @@
 // src/pages/Blog.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
@@ -31,6 +30,17 @@ type WPPost = {
 
 const WP_SITE = "https://hivemindai.co.uk";
 
+// Detect if the app is running inside an iframe (so we can break out on click)
+const inIframe =
+  typeof window !== "undefined" &&
+  (() => {
+    try {
+      return window.self !== window.top;
+    } catch {
+      return true;
+    }
+  })();
+
 function stripHTML(html: string) {
   const tmp = document.createElement("div");
   tmp.innerHTML = html;
@@ -50,6 +60,16 @@ function getFeaturedSrc(p: WPPost) {
   );
 }
 
+// Small helper to render external links that escape an iframe when needed
+function ExternalLink(props: { href: string; className?: string; children: React.ReactNode }) {
+  const { href, className, children } = props;
+  return (
+    <a href={href} {...(inIframe ? { target: "_top", rel: "noopener" } : {})} className={className}>
+      {children}
+    </a>
+  );
+}
+
 export default function Blog() {
   const [posts, setPosts] = useState<WPPost[]>([]);
   const [page, setPage] = useState(1);
@@ -57,7 +77,7 @@ export default function Blog() {
   const [hasMore, setHasMore] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
 
-  // Fetch a page of posts from WordPress (keep full _embed)
+  // Fetch a page of posts from WordPress (keep full _embed so featured images work)
   async function load(pageNum: number) {
     setLoading(true);
     const base = `${WP_SITE}/wp-json/wp/v2/posts`;
@@ -119,7 +139,8 @@ export default function Blog() {
       <Helmet>
         <title>HiveMind Blog</title>
         <meta name="description" content="Insights and updates from HiveMind." />
-        <link rel="canonical" href="https://app.hivemindai.co.uk/blog" />
+        {/* Prefer the main-domain list URL as canonical */}
+        <link rel="canonical" href="https://hivemindai.co.uk/blog" />
       </Helmet>
 
       {/* Hero */}
@@ -178,10 +199,12 @@ export default function Blog() {
                     {estimateRead(featured)}
                   </div>
                 </div>
-                {/* Open canonical WordPress URL */}
-                <a href={featured.link} className="inline-flex items-center gap-2 text-primary">
-                  Read article <ArrowRight className="h-4 w-4" />
-                </a>
+                {/* Open canonical WordPress URL at the top level if embedded */}
+                <ExternalLink href={featured.link}>
+                  <span className="inline-flex items-center gap-2 text-primary">
+                    Read article <ArrowRight className="h-4 w-4" />
+                  </span>
+                </ExternalLink>
               </div>
 
               <div className="relative">
@@ -222,7 +245,7 @@ export default function Blog() {
                   </span>
                 </div>
                 <h3 className="text-lg font-semibold mb-2 line-clamp-2">
-                  <a href={post.link}>{stripHTML(post.title.rendered)}</a>
+                  <ExternalLink href={post.link}>{stripHTML(post.title.rendered)}</ExternalLink>
                 </h3>
                 <div
                   className="text-muted-foreground mb-4 line-clamp-3"
@@ -233,9 +256,11 @@ export default function Blog() {
                     <Clock className="h-3 w-3" />
                     {estimateRead(post)}
                   </div>
-                  <a href={post.link} className="inline-flex items-center gap-1 text-primary">
-                    Read <ArrowRight className="h-3 w-3" />
-                  </a>
+                  <ExternalLink href={post.link}>
+                    <span className="inline-flex items-center gap-1 text-primary">
+                      Read <ArrowRight className="h-3 w-3" />
+                    </span>
+                  </ExternalLink>
                 </div>
               </article>
             ))}
