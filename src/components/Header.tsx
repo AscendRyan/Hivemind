@@ -4,7 +4,7 @@ import { Menu, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import hivemindLogo from "@/assets/hivemind-logo.png";
 
-const BLOG_URL = "https://app.hivemindai.co.uk/blog";        // or "https://blog.hivemindai.co.uk" if you set that up
+const BLOG_URL = "https://hivemindai.co.uk/blog";        // or "https://blog.hivemindai.co.uk" if you set that up
 const CAREERS_URL = "https://app.hivemindai.co.uk/careers";   // keep as your app route
 const HOME_URL = "https://hivemindai.co.uk/";                 // your WordPress home
 
