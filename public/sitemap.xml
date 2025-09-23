@@ -3,5 +3,8 @@
   <url><loc>https://app.hivemindai.co.uk/</loc></url>
   <url><loc>https://app.hivemindai.co.uk/blog</loc></url>
   <url><loc>https://app.hivemindai.co.uk/careers</loc></url>
+  <url><loc>https://hivemindai.co.uk/careers</loc></url>
+  <url><loc>https://hivemindai.co.uk/blogs</loc></url>
+  <url><loc>https://hivemindai.co.uk</loc></url>
   <!-- Add any other real routes you have -->
 </urlset>
