@@ -91,7 +91,9 @@ export const CalendarBooking = () => {
           Schedule a consultation
         </span>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        />
         <DialogHeader>
           <DialogTitle>Schedule Your Free Consultation</DialogTitle>
         </DialogHeader>
