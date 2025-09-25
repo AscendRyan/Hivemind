@@ -35,18 +35,13 @@ export const CalendarBooking = () => {
 
   const handleSubmit = async () => {
     if (!date || !time || !name || !email || !company) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
       return;
     }
 
     setLoading(true);
-
     try {
-      const appointmentData = {
+      const payload = {
         type: "consultation_booking",
         name,
         email,
@@ -57,36 +52,20 @@ export const CalendarBooking = () => {
         timestamp: new Date().toISOString(),
       };
 
-      const response = await fetch(
-        "https://4flajfhr.rpcld.cc/webhook/bb41e4cd-802c-48f1-90af-5ccbe6a1b4a6",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(appointmentData),
-        }
-      );
-
-      if (response.ok) {
-        toast({
-          title: "Success!",
-          description: "Your consultation has been scheduled. We'll send you a confirmation email shortly.",
-        });
-        // Reset form
-        setDate(undefined);
-        setTime(undefined);
-        setName("");
-        setEmail("");
-        setCompany("");
-        setOpen(false);
-      } else {
-        throw new Error("Failed to book appointment");
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "There was an error booking your appointment. Please try again.",
-        variant: "destructive",
+      const res = await fetch("https://4flajfhr.rpcld.cc/webhook/bb41e4cd-802c-48f1-90af-5ccbe6a1b4a6", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
+
+      if (!res.ok) throw new Error("Failed to book");
+
+      toast({ title: "Success!", description: "Your consultation has been scheduled. We’ll email you shortly." });
+      // reset
+      setDate(undefined); setTime(undefined); setName(""); setEmail(""); setCompany("");
+      setOpen(false);
+    } catch {
+      toast({ title: "Error", description: "There was an error booking your appointment. Please try again.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -94,120 +73,94 @@ export const CalendarBooking = () => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* DELETE THIS WHOLE DialogTrigger block if you want to remove the link entirely */}
+      {/* >>> CTA START — Delete this whole block to remove the button */}
       <DialogTrigger asChild>
-        <span className="text-primary font-medium cursor-pointer hover:underline">
+        <Button className="glass-button">
           Schedule a consultation
-        </span>
+        </Button>
       </DialogTrigger>
+      {/* >>> CTA END */}
 
-      {/* IMPORTANT: not self-closing. Content goes INSIDE DialogContent. */}
       <DialogContent
-        className="sm:max-w-md max-h-[85vh] overflow-y-auto"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
+        className="sm:max-w-md"
+        onOpenAutoFocus={(e) => e.preventDefault()}           // stop scroll jump
+        onPointerDownOutside={(e) => e.preventDefault()}      // don’t close on stray clicks
+        onInteractOutside={(e) => e.preventDefault()}         // don’t close on overlay
       >
-        <DialogHeader>
-          <DialogTitle>Schedule Your Free Consultation</DialogTitle>
-        </DialogHeader>
+        <div className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Schedule Your Free Consultation</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 mt-4">
-          {/* Contact Info */}
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="name">Full Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your name"
-                className="mt-1"
-                autoComplete="name"
-              />
+          <div className="space-y-4 mt-4">
+            {/* Contact Info */}
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label htmlFor="name">Full Name *</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" className="mt-1" autoComplete="name" />
+              </div>
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" className="mt-1" autoComplete="email" />
+              </div>
+              <div>
+                <Label htmlFor="company">Company *</Label>
+                <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Your company" className="mt-1" autoComplete="organization" />
+              </div>
             </div>
 
+            {/* Date */}
             <div>
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.email@company.com"
-                className="mt-1"
-                autoComplete="email"
-              />
+              <Label>Select Date *</Label>
+              <div className="mt-1">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  disabled={(d) => d < new Date(new Date().setHours(0,0,0,0)) || d.getDay() === 0 || d.getDay() === 6}
+                  className={cn("rounded-md border pointer-events-auto")}
+                />
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="company">Company *</Label>
-              <Input
-                id="company"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Your company name"
-                className="mt-1"
-                autoComplete="organization"
-              />
-            </div>
+            {/* Time */}
+            {date && (
+              <div>
+                <Label className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Select Time *
+                </Label>
+                <Select value={time} onValueChange={setTime}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Choose a time slot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((slot) => (
+                      <SelectItem key={slot} value={slot}>{slot}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Summary */}
+            {date && time && (
+              <div className="bg-muted/10 p-3 rounded-lg border">
+                <p className="text-sm font-medium">Selected Appointment:</p>
+                <p className="text-sm text-muted-foreground">
+                  {format(date, "EEEE, MMMM do, yyyy")} at {time}
+                </p>
+              </div>
+            )}
+
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || !date || !time || !name || !email || !company}
+              className="w-full"
+            >
+              {loading ? "Booking..." : "Book Consultation"}
+            </Button>
           </div>
-
-          {/* Date Selection */}
-          <div>
-            <Label>Select Date *</Label>
-            <div className="mt-1">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                disabled={(d) =>
-                  d < new Date() || d.getDay() === 0 || d.getDay() === 6
-                }
-                className={cn("rounded-md border pointer-events-auto")}
-              />
-            </div>
-          </div>
-
-          {/* Time Selection */}
-          {date && (
-            <div>
-              <Label className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Select Time *
-              </Label>
-              <Select value={time} onValueChange={setTime}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Choose a time slot" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.map((slot) => (
-                    <SelectItem key={slot} value={slot}>
-                      {slot}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Confirmation */}
-          {date && time && (
-            <div className="bg-muted/10 p-3 rounded-lg border">
-              <p className="text-sm font-medium">Selected Appointment:</p>
-              <p className="text-sm text-muted-foreground">
-                {format(date, "EEEE, MMMM do, yyyy")} at {time}
-              </p>
-            </div>
-          )}
-
-          <Button
-            onClick={handleSubmit}
-            disabled={loading || !date || !time || !name || !email || !company}
-            className="w-full"
-          >
-            {loading ? "Booking..." : "Book Consultation"}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
