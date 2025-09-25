@@ -14,7 +14,6 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    // slightly lighter so content stays visible
     className={cn(
       "fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm",
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -26,8 +25,7 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-// NOTE: use inset-0 + grid place-items-center (no translate trick).
-// This avoids subpixel and transform-containing-block issues.
+// Fullscreen centering container; actual panel lives inside
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -36,20 +34,15 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      // full-screen centering container
-      className={cn(
-        "fixed inset-0 z-[100] grid place-items-center p-4",
-        className
-      )}
-      // prevent autofocus scroll jump on open
+      className={cn("fixed inset-0 z-[100] grid place-items-center p-4", className)}
+      // stop autofocus from scrolling the page (common cause of “bottom of screen”)
       onOpenAutoFocus={(e) => e.preventDefault()}
-      // absolutely block outside click from closing (Radix default allows it)
+      // HARD block outside-click close while you test
       onPointerDownOutside={(e) => e.preventDefault()}
       onInteractOutside={(e) => e.preventDefault()}
       {...props}
     >
-      {/* actual panel */}
-      <div className="w-full max-w-lg rounded-lg border border-border bg-background p-6 shadow-lg">
+      <div className="relative w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg">
         {children}
         <DialogClose
           className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
