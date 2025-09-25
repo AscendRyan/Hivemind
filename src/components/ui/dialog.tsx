@@ -1,4 +1,3 @@
-// src/components/ui/dialog.tsx
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
@@ -15,8 +14,9 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
+    // slightly lighter so content stays visible
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm",
+      "fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm",
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
@@ -26,6 +26,8 @@ const DialogOverlay = React.forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
+// NOTE: use inset-0 + grid place-items-center (no translate trick).
+// This avoids subpixel and transform-containing-block issues.
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -34,28 +36,28 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      // full-screen centering container
       className={cn(
-        // center it
-        "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-        // layer above overlay
-        "z-[60] grid w-[95vw] max-w-lg gap-4",
-        // panel look
-        "border bg-background p-6 shadow-lg sm:rounded-lg",
-        // smooth show/hide (optional)
-        "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
-        "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-        "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "fixed inset-0 z-[100] grid place-items-center p-4",
         className
       )}
+      // prevent autofocus scroll jump on open
+      onOpenAutoFocus={(e) => e.preventDefault()}
+      // absolutely block outside click from closing (Radix default allows it)
+      onPointerDownOutside={(e) => e.preventDefault()}
+      onInteractOutside={(e) => e.preventDefault()}
       {...props}
     >
-      {children}
-      <DialogClose
-        className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
-        aria-label="Close"
-      >
-        <X className="h-4 w-4" />
-      </DialogClose>
+      {/* actual panel */}
+      <div className="w-full max-w-lg rounded-lg border border-border bg-background p-6 shadow-lg">
+        {children}
+        <DialogClose
+          className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </DialogClose>
+      </div>
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
