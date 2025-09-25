@@ -104,9 +104,9 @@ export const CalendarBooking = () => {
       {/* IMPORTANT: not self-closing. Content goes INSIDE DialogContent. */}
       <DialogContent
         className="sm:max-w-md max-h-[85vh] overflow-y-auto"
-        onOpenAutoFocus={(e) => e.preventDefault()}  // avoid scroll jump on open
-        // If clicks inside still dismiss due to nested popovers, uncomment next line:
-        // onPointerDownOutside={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>Schedule Your Free Consultation</DialogTitle>
