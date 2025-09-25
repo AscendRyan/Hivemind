@@ -74,11 +74,6 @@ export const CalendarBooking = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {/* >>> CTA START — Delete this whole block to remove the button */}
-      <DialogTrigger asChild>
-        <Button className="glass-button">
-          Schedule a consultation
-        </Button>
-      </DialogTrigger>
       {/* >>> CTA END */}
 
       <DialogContent
