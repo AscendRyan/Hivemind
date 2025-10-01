@@ -1,15 +1,14 @@
 // src/pages/WPShell.tsx
+import React from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import React from "react";
 
 const css = `
-/* === HIVEMIND APP SHELL (scoped to .hm-shell) === */
+/* === HiveMind app shell (scoped) === */
 .hm-shell {
   --bg-1:#0a0f1c; --bg-2:#0e1527;
   --text:#e5e7eb; --muted:#a3a3a3;
   --primary:#8b5cf6; --primary2:#06b6d4;
-  --card:rgba(255,255,255,.05); --border:rgba(255,255,255,.08);
   color:var(--text);
   min-height:100vh;
   background:
@@ -23,7 +22,7 @@ const css = `
   50%{ background-position: 10% -5%, 90% 5%, 50% 50%; }
   100%{background-position: 0% 0%, 100% 0%, 50% 50%; }
 }
-/* spacing so header shows */
+/* keep content below your fixed/glassy header */
 .hm-pad-top { padding-top: 112px; }
 `;
 
@@ -31,9 +30,8 @@ export default function WPShell() {
   return (
     <div className="hm-shell">
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      {/* Your existing Header (already set to open top-level when inside iframe) */}
+      {/* Uses your existing Header/Footer components */}
       <Header />
-      {/* empty main; this page is only the visual shell */}
       <div className="hm-pad-top" />
       <Footer />
     </div>
