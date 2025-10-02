@@ -1,32 +1,48 @@
-// src/pages/SkinFooterBare.tsx
 import { useEffect } from "react";
 import { Footer } from "@/components/Footer";
 
 export default function SkinFooterBare() {
   useEffect(() => {
-    const docEl = document.documentElement;
+    const html = document.documentElement;
     const body = document.body;
-    docEl.style.background = "transparent";
+
+    html.style.background = "transparent";
     body.style.background = "transparent";
-    docEl.style.margin = "0";
+    html.style.margin = "0";
     body.style.margin = "0";
-    body.style.overflow = "hidden"; // stop the child scrollbar
-    // ensure footer links break out of the iframe
-    const as = Array.from(document.querySelectorAll('a[href]')) as HTMLAnchorElement[];
-    as.forEach(a => a.setAttribute("target", "_top"));
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+
+    const style = document.createElement("style");
+    style.textContent = `
+      footer{background:transparent !important;backdrop-filter:none !important;box-shadow:none !important;border:0 !important;}
+    `;
+    document.head.appendChild(style);
+
+    // links break out of iframe
+    Array.from(document.querySelectorAll('a[href]')).forEach(a =>
+      (a as HTMLAnchorElement).setAttribute("target", "_top")
+    );
+
+    // report height to parent
+    const el = document.querySelector("footer") as HTMLElement | null;
+    const send = () => {
+      const h = (el?.offsetHeight || document.documentElement.scrollHeight) | 0;
+      window.parent?.postMessage({ type: "skin:resize", role: "footer", height: h }, "*");
+    };
+    const ro = new ResizeObserver(send);
+    if (el) ro.observe(el);
+    window.addEventListener("load", send);
+    window.addEventListener("resize", send);
+    send();
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("load", send);
+      window.removeEventListener("resize", send);
+      style.remove();
+    };
   }, []);
 
-  return (
-    <div style={{ height: "auto" }}>
-      <style>{`
-        footer {
-          background: transparent !important;
-          backdrop-filter: none !important;
-          box-shadow: none !important;
-          border: 0 !important;
-        }
-      `}</style>
-      <Footer /* variant="bare" if available */ />
-    </div>
-  );
+  return <Footer />;
 }
