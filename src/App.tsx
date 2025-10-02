@@ -11,6 +11,9 @@ import BlogPost from "./pages/BlogPost";
 import NotFound from "./pages/NotFound";
 import Error404 from "./pages/Error404";
 import Skin from "./pages/Skin";
+import SkinHeader from "./pages/SkinHeader";
+import SkinBG from "./pages/SkinBG";
+import SkinFooter from "./pages/SkinFooter";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +31,9 @@ const App = () => (
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="*" element={<Error404 />} />
             <Route path="/skin" element={<Skin />} />
+            <Route path="/skin-header" element={<SkinHeader />} />
+            <Route path="/skin-bg" element={<SkinBG />} />
+            <Route path="/skin-footer" element={<SkinFooter />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
