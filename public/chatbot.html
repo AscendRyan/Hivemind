@@ -535,6 +535,7 @@
         const isFull=chatWindow.classList.toggle('fullscreen');
         if(isFull){fullscreenToggle.setAttribute('title','Exit fullscreen');expandIcon.style.display='none';collapseIcon.style.display='block'}
         else{fullscreenToggle.setAttribute('title','Expand to fullscreen');expandIcon.style.display='block';collapseIcon.style.display='none'}
+        try { window.parent.postMessage({ type:'hm:fullscreen', full:isFull }, '*'); } catch(e){}
       });
 
       /* ---------- Files ---------- */
