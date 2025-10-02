@@ -7,6 +7,11 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1"
   />
   <title>HiveMind AI – Chatbot Widget</title>
+  
+  <style>
+    /* When embedded, remove the internal launcher so it can't push content */
+    .hm-embed #chat-button { display: none !important; }
+  </style>
 
   <!-- Prevent any internal page scrollbar & keep transparent -->
   <style>
@@ -680,7 +685,12 @@
     }
 
     /* Init immediately (inside an iframe this is cheap) */
-    document.addEventListener('DOMContentLoaded', initHiveMindChatbot);
-  </script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const qs = new URLSearchParams(location.search);
+      if (qs.has('embed') || qs.get('embedded') === '1') {
+        document.documentElement.classList.add('hm-embed');
+      }
+      initHiveMindChatbot();
+      </script>
 </body>
 </html>
