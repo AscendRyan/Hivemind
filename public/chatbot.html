@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <style>
-    html,body{margin:0;background:transparent;overflow:hidden}
-  </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HiveMind AI – Chatbot Widget</title>
 
-  <!-- Preconnect to your webhook domain (replace href with your own if needed) -->
+  <!-- Keep the iframe page transparent and non-scrolling -->
+  <style>
+    html, body { margin:0; background:transparent; overflow:hidden; }
+  </style>
+
+  <!-- Preconnect to your webhook domain (optional) -->
   <link rel="preconnect" href="https://example.com"/>
 
   <style>
     :root{
-      /* HiveMind AI theme — sampled to match the landing page */
-      --primary-color:#0b0618;         /* deep, near-black violet */
-      --secondary-color:#d946ef;       /* vivid fuchsia accent */
-      --secondary-hover:#a855f7;       /* violet accent on hover */
+      --primary-color:#0b0618;
+      --secondary-color:#d946ef;
+      --secondary-hover:#a855f7;
       --background:#0b0618;
       --user-bubble:#1c1430;
       --bot-bubble:#141024;
@@ -26,13 +27,13 @@
       --transition-speed:.3s;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     }
-
     *{box-sizing:border-box;margin:0;padding:0}
 
     /* ---------- Container ---------- */
     #hivemind-chatbot{
       position:fixed;bottom:20px;right:20px;z-index:1000;
       font-size:14px;display:flex;flex-direction:column-reverse;align-items:flex-end;
+      pointer-events:auto;
     }
 
     /* ---------- Launcher Button ---------- */
@@ -49,7 +50,6 @@
       background:#130f25;color:var(--secondary-color);
       border:2px solid var(--secondary-color);
     }
-    #chat-window.fullscreen~#chat-button{display:none}
 
     /* ---------- Window ---------- */
     #chat-window{
@@ -63,7 +63,7 @@
       overflow:hidden;display:flex;flex-direction:column;position:relative;
       opacity:0;visibility:hidden;transform:translateY(60px);
       transition:opacity var(--transition-speed),transform .4s ease,width .4s ease,height .4s ease,border-radius .4s ease,visibility 0s linear var(--transition-speed);
-      resize:none;overflow-y:auto;
+      resize:none;
     }
     #chat-window.open{opacity:1;visibility:visible;transform:translateY(0);transition-delay:0s}
 
@@ -74,7 +74,6 @@
     }
     #chat-header h3{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
     .hivemind-logo{width:24px;height:24px;object-fit:contain;border-radius:4px}
-
     #chat-header button{
       background:transparent;border:none;color:var(--secondary-color);
       font-size:20px;cursor:pointer;margin-left:8px;transition:color var(--transition-speed),transform .3s ease;
@@ -92,7 +91,6 @@
       flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;
       background:var(--primary-color);color:var(--text-color);position:relative;overflow-x:hidden;
     }
-    /* Subtle particle-glow overlay inspired by landing hero */
     #chat-body::before{
       content:'';position:absolute;inset:0;pointer-events:none;z-index:-1;
       background:
@@ -124,7 +122,6 @@
     .message-row{display:flex;margin-bottom:10px}
     .message-row.user{justify-content:flex-end}
     .message-row.bot{justify-content:flex-start}
-
     .message{
       max-width:80%;padding:10px 14px;border-radius:12px;line-height:1.4;word-break:break-word;
       animation:fadeIn .55s cubic-bezier(.22,1,.36,1) both;opacity:0;transform:translateY(10px);
@@ -138,14 +135,12 @@
       background:var(--bot-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 16px 2px;color:var(--text-color);
     }
     @keyframes fadeIn{0%{opacity:0;transform:translateY(12px)}80%{opacity:1;transform:translateY(-4px)}100%{opacity:1;transform:translateY(0)}}
-
     .avatar{
       width:32px;height:32px;border-radius:50%;background:var(--secondary-color);color:#0b0618;
       display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin-right:8px;flex-shrink:0;
       animation:avatarNod 8s ease-in-out infinite;
     }
     @keyframes avatarNod{0%,95%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
-
     .message .meta{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:10px;color:#a39ac7;margin-top:4px}
     .message .meta .receipt{font-size:12px;color:var(--secondary-color)}
     .message-row:hover .message{transform:scale(1.02);box-shadow:0 3px 5px rgba(0,0,0,.25),0 6px 12px rgba(0,0,0,.15),0 12px 24px rgba(0,0,0,.08)}
@@ -219,7 +214,7 @@
     #confirm-dialog .dialog-box p{margin-bottom:16px;font-size:14px}
     #confirm-dialog .dialog-actions{display:flex;justify-content:center;gap:12px}
     #confirm-dialog .dialog-actions button{padding:6px 16px;border:none;border-radius:20px;font-size:14px;cursor:pointer}
-    #confirm-dialog .dialog-actions .yes{background:var(--secondary-color);color:#0b0618}
+    #confirm-dialog .dialog-actions .yes{background:var(--secondary-color);color:var(--button-text-color)}
     #confirm-dialog .dialog-actions .no{background:#322856;color:#fff}
 
     /* ---------- Ripple ---------- */
@@ -244,9 +239,8 @@
   <div id="hivemind-chatbot">
     <!-- Launcher -->
     <div id="chat-button" title="Chat with HiveMind AI">
-      <!-- Chat bubble icon -->
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 3C7.03 3 3 6.58 3 11c0 3.23 2.09 5.84 5 6.87V21l4.1-2.16c.62.1 1.26.16 1.9.16 4.97 0 9-3.58 9-8s-4.03-8-9-8H12Z" fill="currentColor"/>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3C7.03 3 3 6.58 3 11c0 3.23 2.09 5.84 5 6.87V21l4.1-2.16c.62.1 1.26.16 1.9.16 4.97 0 9-3.58 9-8s-4.03-8-9-8H12Z"/>
       </svg>
     </div>
 
@@ -254,7 +248,6 @@
     <div id="chat-window">
       <div id="chat-header">
         <h3>
-          <!-- Replace src with your real logo if you have one -->
           <img class="hivemind-logo" alt="HiveMind logo"
                src="https://upload.wikimedia.org/wikipedia/commons/3/38/Hexagon_Icon.svg"/>
           HiveMind AI
@@ -377,11 +370,16 @@
       let userName='';
       let isWaiting=false;
 
-      /* Replace with your own webhook if needed */
+      // Replace with your own webhook if needed
       const WEBHOOK_URL='https://4flajfhr.rpcld.cc/webhook/afd20f14-dc8f-4833-b72b-b0dca66f1b92';
       let sessionId=null;
 
-      /* ---------- HiveMind FAQs (automation-focused) ---------- */
+      // --- parent messaging helpers (for iframe resize/fullscreen) ---
+      const tellParent = (type, payload={}) => {
+        try { window.parent.postMessage({ type, ...payload }, "*"); } catch(e){}
+      };
+
+      /* ---------- FAQs ---------- */
       const faqs=[
         {question:'What types of automations do you build?',answer:'We design AI-driven automations across Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations include tools like HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more.'},
         {question:'How long does an implementation take?',answer:'Most pilots are delivered in 1–2 weeks. Larger rollouts typically take 3–6 weeks depending on the number of workflows and integrations.'},
@@ -390,7 +388,6 @@
         {question:'Can you work with our data warehouse?',answer:'Absolutely. We connect to BigQuery, Redshift, Snowflake, or Postgres for reporting automations, anomaly alerts, and dashboard updates.'},
         {question:'Do you offer a proof of concept?',answer:'Yes—most clients start with a fixed-scope POC to validate ROI before broader rollout.'}
       ];
-
       function populateFaq(){
         faqs.forEach(item=>{
           const btn=document.createElement('button');
@@ -442,8 +439,11 @@
 
       function isValidUKMobile(number){
         const cleaned=number.replace(/\s+/g,'');
-        return /^((\+44)?7\d{9}|07\d{9}|(\+\d{9,15}))$/.test(cleaned); // accepts UK and generic intl
+        return /^((\+44)?7\d{9}|07\d{9}|(\+\d{9,15}))$/.test(cleaned);
       }
+
+      // Announce initial (closed) state to parent so it shrinks iframe to bubble size
+      tellParent("hm:resize", { open:false });
 
       startBtn.addEventListener('click',()=>{
         const name=nameInput.value.trim();const phone=phoneInput.value.trim();
@@ -521,8 +521,10 @@
         if(chatWindow.classList.contains('open')){
           chatWindow.classList.remove('open');faqPanel.classList.remove('open');
           chatButton.innerHTML=openIconSVG;chatButton.classList.remove('open');
+          tellParent("hm:resize", { open:false });   // shrink iframe to 72x72
         }else{
           chatWindow.classList.add('open');chatButton.innerHTML=collapseIconSVG;chatButton.classList.add('open');
+          tellParent("hm:resize", { open:true });    // expand iframe to panel size
         }
       });
 
@@ -533,9 +535,12 @@
 
       fullscreenToggle.addEventListener('click',()=>{
         const isFull=chatWindow.classList.toggle('fullscreen');
-        if(isFull){fullscreenToggle.setAttribute('title','Exit fullscreen');expandIcon.style.display='none';collapseIcon.style.display='block'}
-        else{fullscreenToggle.setAttribute('title','Expand to fullscreen');expandIcon.style.display='block';collapseIcon.style.display='none'}
-        try { window.parent.postMessage({ type:'hm:fullscreen', full:isFull }, '*'); } catch(e){}
+        if(isFull){
+          fullscreenToggle.setAttribute('title','Exit fullscreen');expandIcon.style.display='none';collapseIcon.style.display='block';
+        }else{
+          fullscreenToggle.setAttribute('title','Expand to fullscreen');expandIcon.style.display='block';collapseIcon.style.display='none';
+        }
+        tellParent("hm:fullscreen", { full:isFull }); // parent makes iframe 100vw x 100vh
       });
 
       /* ---------- Files ---------- */
@@ -598,13 +603,9 @@
         if(userName){
           insertBotMessage(`Hey ${userName}! 👋<br/>Welcome back to <strong>HiveMind AI</strong>. What would you like to automate?`);
           showSuggestions([
-            'Sales Automations',
-            'CRM Automations',
-            'Ecommerce Automations',
-            'Marketing Automations',
-            'Customer Service Automations',
-            'Operations Automations',
-            'Data & Reporting Automations'
+            'Sales Automations','CRM Automations','Ecommerce Automations',
+            'Marketing Automations','Customer Service Automations',
+            'Operations Automations','Data & Reporting Automations'
           ]);
         }
       });
@@ -663,14 +664,14 @@
     /* ---------- Lazy init ---------- */
     (function(){
       let hivemindInitialized=false;
-      function initOnce(){if(hivemindInitialized) return;hivemindInitialized=true;initHiveMindChatbot()}
+      function initOnce(){ if(hivemindInitialized) return; hivemindInitialized=true; initHiveMindChatbot(); }
       const bubbleContainer=document.getElementById('hivemind-chatbot');
       if(window.IntersectionObserver&&bubbleContainer){
-        const observer=new IntersectionObserver(entries=>{if(entries[0].isIntersecting){initOnce();observer.disconnect()}});
+        const observer=new IntersectionObserver(entries=>{ if(entries[0].isIntersecting){ initOnce(); observer.disconnect(); }});
         observer.observe(bubbleContainer);
       }
       ['scroll','mousemove','touchstart','keydown','click'].forEach(evt=>{
-        window.addEventListener(evt,function handler(){initOnce();window.removeEventListener(evt,handler,true)},{capture:true,passive:true});
+        window.addEventListener(evt,function handler(){ initOnce(); window.removeEventListener(evt,handler,true); },{capture:true,passive:true});
       });
     })();
   </script>
