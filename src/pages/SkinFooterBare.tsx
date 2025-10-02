@@ -3,26 +3,30 @@ import { useEffect } from "react";
 import { Footer } from "@/components/Footer";
 
 export default function SkinFooterBare() {
-  // Ensure the iframe is transparent
   useEffect(() => {
-    document.documentElement.style.background = "transparent";
-    document.body.style.background = "transparent";
-    // Make footer links escape the iframe
+    const docEl = document.documentElement;
+    const body = document.body;
+    docEl.style.background = "transparent";
+    body.style.background = "transparent";
+    docEl.style.margin = "0";
+    body.style.margin = "0";
+    body.style.overflow = "hidden"; // stop the child scrollbar
+    // ensure footer links break out of the iframe
     const as = Array.from(document.querySelectorAll('a[href]')) as HTMLAnchorElement[];
     as.forEach(a => a.setAttribute("target", "_top"));
   }, []);
 
   return (
-    <div className="min-h-[120px]">
+    <div style={{ height: "auto" }}>
       <style>{`
-        footer, .backdrop-blur-lg, .bg-background, .bg-background\\/80, .border-glow {
+        footer {
           background: transparent !important;
           backdrop-filter: none !important;
           box-shadow: none !important;
           border: 0 !important;
         }
       `}</style>
-      <Footer /* later: variant="bare" */ />
+      <Footer /* variant="bare" if available */ />
     </div>
   );
 }
