@@ -1,16 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HiveMind AI – Chatbot Widget</title>
 
   <!-- Keep the iframe page transparent and non-scrolling -->
-  <style>
-    html, body { margin:0; background:transparent; overflow:hidden; }
-  </style>
+  <style>html,body{margin:0;background:transparent;overflow:hidden}</style>
 
-  <!-- Preconnect to your webhook domain (optional) -->
   <link rel="preconnect" href="https://example.com"/>
 
   <style>
@@ -33,7 +30,6 @@
     #hivemind-chatbot{
       position:fixed;bottom:20px;right:20px;z-index:1000;
       font-size:14px;display:flex;flex-direction:column-reverse;align-items:flex-end;
-      pointer-events:auto;
     }
 
     /* ---------- Launcher Button ---------- */
@@ -50,6 +46,7 @@
       background:#130f25;color:var(--secondary-color);
       border:2px solid var(--secondary-color);
     }
+    #chat-window.fullscreen~#chat-button{display:none}
 
     /* ---------- Window ---------- */
     #chat-window{
@@ -63,7 +60,7 @@
       overflow:hidden;display:flex;flex-direction:column;position:relative;
       opacity:0;visibility:hidden;transform:translateY(60px);
       transition:opacity var(--transition-speed),transform .4s ease,width .4s ease,height .4s ease,border-radius .4s ease,visibility 0s linear var(--transition-speed);
-      resize:none;
+      resize:none;overflow-y:auto;
     }
     #chat-window.open{opacity:1;visibility:visible;transform:translateY(0);transition-delay:0s}
 
@@ -128,24 +125,22 @@
       transition:transform .15s ease-out,box-shadow .15s ease-out;will-change:transform,box-shadow;display:flex;flex-direction:column;
       box-shadow:0 1px 2px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.3);
     }
-    .message.user{
-      background:var(--user-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 2px 16px;color:var(--text-color);
-    }
-    .message.bot{
-      background:var(--bot-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 16px 2px;color:var(--text-color);
-    }
+    .message.user{background:var(--user-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 2px 16px;color:var(--text-color)}
+    .message.bot{background:var(--bot-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 16px 2px;color:var(--text-color)}
     @keyframes fadeIn{0%{opacity:0;transform:translateY(12px)}80%{opacity:1;transform:translateY(-4px)}100%{opacity:1;transform:translateY(0)}}
+
     .avatar{
       width:32px;height:32px;border-radius:50%;background:var(--secondary-color);color:#0b0618;
       display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin-right:8px;flex-shrink:0;
       animation:avatarNod 8s ease-in-out infinite;
     }
     @keyframes avatarNod{0%,95%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+
     .message .meta{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:10px;color:#a39ac7;margin-top:4px}
     .message .meta .receipt{font-size:12px;color:var(--secondary-color)}
     .message-row:hover .message{transform:scale(1.02);box-shadow:0 3px 5px rgba(0,0,0,.25),0 6px 12px rgba(0,0,0,.15),0 12px 24px rgba(0,0,0,.08)}
 
-    /* ---------- Composer ---------- */
+    /* Composer */
     #chat-input-container{display:flex;border-top:1px solid #1e1835;padding:8px;background:#15102b}
     #chat-input-container input{
       flex:1;padding:8px 10px;border:1px solid #322856;border-radius:8px;font-size:14px;background:#1c1638;color:var(--text-color);
@@ -161,7 +156,7 @@
     #send-btn:hover{background:var(--secondary-hover);transform:scale(1.02)}
     .send-icon{font-size:16px;line-height:1;margin-top:1px}
 
-    /* ---------- FAQ Panel ---------- */
+    /* FAQ Panel */
     #faq-panel{
       position:absolute;top:0;left:0;width:240px;height:100%;background:#120d25;
       border-top-left-radius:var(--border-radius);border-bottom-left-radius:var(--border-radius);
@@ -175,7 +170,7 @@
     }
     .faq-btn:hover{background:#211a40;border-color:var(--secondary-color);color:var(--secondary-color)}
 
-    /* ---------- Scrollbars ---------- */
+    /* Scrollbars */
     #faq-panel,#chat-body{scrollbar-width:thin;scrollbar-color:var(--secondary-color) #1a1432}
     #faq-panel::-webkit-scrollbar,#chat-body::-webkit-scrollbar{width:10px;height:10px}
     #faq-panel::-webkit-scrollbar-track,#chat-body::-webkit-scrollbar-track{background:#1a1432;border-radius:5px}
@@ -186,7 +181,7 @@
       background:linear-gradient(180deg,#e879f9,var(--secondary-color));box-shadow:0 0 10px rgba(217,70,239,.45);
     }
 
-    /* ---------- Suggestions ---------- */
+    /* Suggestions */
     #suggestion-container{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
     .suggestion-btn{
       padding:6px 12px;border-radius:20px;background:#1c1638;border:1px solid var(--secondary-color);color:var(--secondary-color);
@@ -195,14 +190,14 @@
     .suggestion-btn:hover{background:#271e4d;transform:translateY(-2px)}
     .suggestion-btn.selected{background:var(--secondary-color);color:#0b0618;border-radius:6px;border-color:var(--secondary-color);transform:scale(.95);transition:all .2s ease}
 
-    /* ---------- File / Voice ---------- */
+    /* File / Voice */
     #file-preview{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
     .file-item{padding:4px 8px;border-radius:12px;background:#1c1638;color:#e879f9;font-size:12px;display:flex;align-items:center;gap:4px}
     .file-item .remove-file{color:#ff7373;cursor:pointer;font-size:12px}
     #voice-btn.recording{animation:pulseRing 1s infinite}
     @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(217,70,239,.4)}70%{box-shadow:0 0 0 10px rgba(217,70,239,0)}100%{box-shadow:0 0 0 0 rgba(217,70,239,0)}}
 
-    /* ---------- Confirm dialog ---------- */
+    /* Confirm dialog */
     #confirm-dialog{
       position:absolute;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:5;visibility:hidden;opacity:0;transition:opacity .2s ease;
     }
@@ -214,21 +209,20 @@
     #confirm-dialog .dialog-box p{margin-bottom:16px;font-size:14px}
     #confirm-dialog .dialog-actions{display:flex;justify-content:center;gap:12px}
     #confirm-dialog .dialog-actions button{padding:6px 16px;border:none;border-radius:20px;font-size:14px;cursor:pointer}
-    #confirm-dialog .dialog-actions .yes{background:var(--secondary-color);color:var(--button-text-color)}
+    #confirm-dialog .dialog-actions .yes{background:var(--secondary-color);color:#0b0618}
     #confirm-dialog .dialog-actions .no{background:#322856;color:#fff}
 
-    /* ---------- Ripple ---------- */
+    /* Ripple */
     .ripple{position:absolute;border-radius:50%;transform:scale(0);animation:ripple .6s linear;background:rgba(255,255,255,.25);pointer-events:none}
     @keyframes ripple{to{transform:scale(4);opacity:0}}
 
-    /* ---------- Typing ---------- */
+    /* Typing */
     .typing-indicator{display:inline-flex;align-items:center;gap:4px}
     .typing-indicator span{width:6px;height:6px;border-radius:50%;background:var(--secondary-color);animation:typingPulse 1s infinite ease-in-out}
     .typing-indicator span:nth-child(2){animation-delay:.15s}
     .typing-indicator span:nth-child(3){animation-delay:.3s}
     @keyframes typingPulse{0%,80%,100%{transform:scale(1);opacity:.5}40%{transform:scale(1.6);opacity:1}}
 
-    /* ---------- Responsive ---------- */
     @media (max-width:480px){
       #chat-window{width:100vw;height:70vh}
       #faq-panel{width:70vw}
@@ -239,8 +233,8 @@
   <div id="hivemind-chatbot">
     <!-- Launcher -->
     <div id="chat-button" title="Chat with HiveMind AI">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 3C7.03 3 3 6.58 3 11c0 3.23 2.09 5.84 5 6.87V21l4.1-2.16c.62.1 1.26.16 1.9.16 4.97 0 9-3.58 9-8s-4.03-8-9-8H12Z"/>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3C7.03 3 3 6.58 3 11c0 3.23 2.09 5.84 5 6.87V21l4.1-2.16c.62.1 1.26.16 1.9.16 4.97 0 9-3.58 9-8s-4.03-8-9-8H12Z" fill="currentColor"/>
       </svg>
     </div>
 
@@ -280,9 +274,7 @@
       <div id="chat-body">
         <!-- Intake -->
         <div id="form-container">
-          <p style="color:#cdbdfd;margin-bottom:8px;font-size:14px">
-            Share a couple details so we can tailor recommendations.
-          </p>
+          <p style="color:#cdbdfd;margin-bottom:8px;font-size:14px">Share a couple details so we can tailor recommendations.</p>
           <div>
             <label for="user-name">Name</label>
             <input type="text" id="user-name" placeholder="Your name" required/>
@@ -364,40 +356,46 @@
       const filePreview=document.getElementById('file-preview');
       const confirmDialog=document.getElementById('confirm-dialog');
 
-      let attachments=[];
-      let isRecording=false;let mediaRecorder;let audioChunks=[];
-      let suggestionContainer=null;
-      let userName='';
-      let isWaiting=false;
+      let attachments=[]; let isRecording=false; let mediaRecorder; let audioChunks=[];
+      let suggestionContainer=null; let userName=''; let isWaiting=false;
 
-      // Replace with your own webhook if needed
       const WEBHOOK_URL='https://4flajfhr.rpcld.cc/webhook/afd20f14-dc8f-4833-b72b-b0dca66f1b92';
       let sessionId=null;
 
-      // --- parent messaging helpers (for iframe resize/fullscreen) ---
-      const tellParent = (type, payload={}) => {
-        try { window.parent.postMessage({ type, ...payload }, "*"); } catch(e){}
+      /* ---------- Parent messaging helpers ---------- */
+      const tellParent=(type,payload={})=>{try{window.parent.postMessage({type,...payload},"*")}catch(e){}};
+      const openChat=()=>{
+        if(!chatWindow.classList.contains('open')){
+          chatWindow.classList.add('open');
+          chatButton.innerHTML=collapseIconSVG;
+          chatButton.classList.add('open');
+          tellParent("hm:resize",{open:true});
+        }
+      };
+      const closeChat=()=>{
+        if(chatWindow.classList.contains('open')){
+          chatWindow.classList.remove('open'); faqPanel.classList.remove('open');
+          chatButton.innerHTML=openIconSVG; chatButton.classList.remove('open');
+          tellParent("hm:resize",{open:false});
+        }
       };
 
       /* ---------- FAQs ---------- */
       const faqs=[
-        {question:'What types of automations do you build?',answer:'We design AI-driven automations across Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations include tools like HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more.'},
-        {question:'How long does an implementation take?',answer:'Most pilots are delivered in 1–2 weeks. Larger rollouts typically take 3–6 weeks depending on the number of workflows and integrations.'},
-        {question:'Do you support Salesforce/HubSpot?',answer:'Yes. We build lead routing, enrichment, deduping, sequence triggers, opportunity alerts, and ticket automations for both platforms.'},
-        {question:'What is your process?',answer:'We start with a discovery call → map your workflows → identify quick wins → implement a pilot → iterate based on results → scale across teams.'},
-        {question:'Can you work with our data warehouse?',answer:'Absolutely. We connect to BigQuery, Redshift, Snowflake, or Postgres for reporting automations, anomaly alerts, and dashboard updates.'},
-        {question:'Do you offer a proof of concept?',answer:'Yes—most clients start with a fixed-scope POC to validate ROI before broader rollout.'}
+        {question:'What types of automations do you build?',answer:'We design AI-driven automations across Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations include HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more.'},
+        {question:'How long does an implementation take?',answer:'Most pilots are delivered in 1–2 weeks. Larger rollouts typically take 3–6 weeks depending on scope.'},
+        {question:'Do you support Salesforce/HubSpot?',answer:'Yes. We build lead routing, enrichment, deduping, sequence triggers, opportunity alerts, and ticket automations.'},
+        {question:'What is your process?',answer:'Discovery → map workflows → quick wins → pilot → iterate → scale.'},
+        {question:'Can you work with our data warehouse?',answer:'Yes. BigQuery, Redshift, Snowflake, Postgres, etc.'},
+        {question:'Do you offer a proof of concept?',answer:'Yes—fixed-scope POCs are available to validate ROI.'}
       ];
       function populateFaq(){
         faqs.forEach(item=>{
           const btn=document.createElement('button');
-          btn.classList.add('faq-btn');
-          btn.textContent=item.question;
+          btn.classList.add('faq-btn'); btn.textContent=item.question;
           btn.addEventListener('click',()=>{
-            hideSuggestions();
-            insertUserMessage(item.question);
-            showTyping();
-            setTimeout(()=>{hideTyping();insertBotMessage(item.answer);},300);
+            hideSuggestions(); insertUserMessage(item.question);
+            showTyping(); setTimeout(()=>{hideTyping(); insertBotMessage(item.answer);},300);
             faqPanel.classList.remove('open');
           });
           faqPanel.appendChild(btn);
@@ -405,7 +403,6 @@
       }
 
       function scrollToBottom(){setTimeout(()=>{messagesContainer.scrollTop=messagesContainer.scrollHeight;},50)}
-
       function insertUserMessage(text){
         const timeString=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
         const row=document.createElement('div');row.classList.add('message-row','user');
@@ -415,7 +412,6 @@
         const r=document.createElement('span');r.classList.add('receipt');r.textContent='✓✓';
         meta.appendChild(t);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
       }
-
       function insertBotMessage(text){
         const timeString=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
         const row=document.createElement('div');row.classList.add('message-row','bot');
@@ -426,7 +422,6 @@
         const r=document.createElement('span');r.classList.add('receipt');r.textContent='✓';
         meta.appendChild(t);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
       }
-
       let typingRow;
       function showTyping(){
         typingRow=document.createElement('div');typingRow.classList.add('message-row','bot');
@@ -442,9 +437,6 @@
         return /^((\+44)?7\d{9}|07\d{9}|(\+\d{9,15}))$/.test(cleaned);
       }
 
-      // Announce initial (closed) state to parent so it shrinks iframe to bubble size
-      tellParent("hm:resize", { open:false });
-
       startBtn.addEventListener('click',()=>{
         const name=nameInput.value.trim();const phone=phoneInput.value.trim();
         if(!name){formError.textContent='Please enter your name.';return;}
@@ -456,13 +448,9 @@
 
         insertBotMessage(`Hey ${name}! 👋<br/>Welcome to <strong>HiveMind AI</strong> — we build intelligent automation systems that supercharge your team.<br/><br/><em>What kind of automation are you exploring today?</em>`);
         showSuggestions([
-          'Sales Automations',
-          'CRM Automations',
-          'Ecommerce Automations',
-          'Marketing Automations',
-          'Customer Service Automations',
-          'Operations Automations',
-          'Data & Reporting Automations'
+          'Sales Automations','CRM Automations','Ecommerce Automations',
+          'Marketing Automations','Customer Service Automations',
+          'Operations Automations','Data & Reporting Automations'
         ]);
 
         faqToggle.style.display='inline-flex';
@@ -483,17 +471,13 @@
         chatInput.value='';hideSuggestions();showTyping();
         isWaiting=true;chatInput.disabled=true;sendBtn.disabled=true;attachBtn.disabled=true;voiceBtn.disabled=true;
 
-        let response;
         try{
-          let messageType='text';
+          let response,data; let messageType='text';
           if(attachments.length>0){
             const hasAudio=attachments.some(att=>att.type&&att.type.startsWith('audio/'));
             messageType=hasAudio?'audio':'file';
-          }
-          if(attachments.length>0){
             const formData=new FormData();
-            formData.append('chatmessage',text);
-            formData.append('sessionId',sessionId);
+            formData.append('chatmessage',text); formData.append('sessionId',sessionId);
             formData.append('messageType',messageType);
             attachments.forEach((att,i)=>{formData.append(`file${i}`,att.file,att.name);});
             response=await fetch(WEBHOOK_URL,{method:'POST',body:formData});
@@ -502,7 +486,7 @@
             response=await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
           }
           attachments=[];filePreview.innerHTML='';
-          const data=await response.json();hideTyping();
+          data=await response.json(); hideTyping();
           if(data&&data.response){insertBotMessage(data.response);}else{insertBotMessage('Sorry, an unexpected response was received.')}
         }catch(err){
           hideTyping();insertBotMessage('Sorry, there was an error contacting our service.');console.error('Webhook error:',err);
@@ -517,16 +501,7 @@
       const collapseIconSVG=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       chatButton.innerHTML=openIconSVG;
 
-      chatButton.addEventListener('click',()=>{
-        if(chatWindow.classList.contains('open')){
-          chatWindow.classList.remove('open');faqPanel.classList.remove('open');
-          chatButton.innerHTML=openIconSVG;chatButton.classList.remove('open');
-          tellParent("hm:resize", { open:false });   // shrink iframe to 72x72
-        }else{
-          chatWindow.classList.add('open');chatButton.innerHTML=collapseIconSVG;chatButton.classList.add('open');
-          tellParent("hm:resize", { open:true });    // expand iframe to panel size
-        }
-      });
+      chatButton.addEventListener('click',()=>{ if(chatWindow.classList.contains('open')) closeChat(); else openChat(); });
 
       clearChatBtn.addEventListener('click',()=>{confirmDialog.classList.add('show')});
       faqToggle.addEventListener('click',e=>{e.stopPropagation();faqPanel.classList.toggle('open')});
@@ -535,15 +510,12 @@
 
       fullscreenToggle.addEventListener('click',()=>{
         const isFull=chatWindow.classList.toggle('fullscreen');
-        if(isFull){
-          fullscreenToggle.setAttribute('title','Exit fullscreen');expandIcon.style.display='none';collapseIcon.style.display='block';
-        }else{
-          fullscreenToggle.setAttribute('title','Expand to fullscreen');expandIcon.style.display='block';collapseIcon.style.display='none';
-        }
-        tellParent("hm:fullscreen", { full:isFull }); // parent makes iframe 100vw x 100vh
+        if(isFull){fullscreenToggle.setAttribute('title','Exit fullscreen');expandIcon.style.display='none';collapseIcon.style.display='block'}
+        else{fullscreenToggle.setAttribute('title','Expand to fullscreen');expandIcon.style.display='block';collapseIcon.style.display='none'}
+        try{window.parent.postMessage({type:'hm:fullscreen',full:isFull},"*")}catch(e){}
       });
 
-      /* ---------- Files ---------- */
+      /* Files */
       attachBtn.addEventListener('click',()=>fileInputEl.click());
       const MAX_FILES=10;const MAX_FILE_BYTES=25*1024*1024;
       fileInputEl.addEventListener('change',()=>{
@@ -564,7 +536,7 @@
         item.appendChild(remove);filePreview.appendChild(item);
       }
 
-      /* ---------- Voice ---------- */
+      /* Voice */
       voiceBtn.addEventListener('click',async ()=>{
         if(!isRecording){
           try{
@@ -592,7 +564,7 @@
         }
       });
 
-      /* ---------- Confirm Clear ---------- */
+      /* Confirm Clear */
       const yesBtn=confirmDialog.querySelector('.yes');
       const noBtn=confirmDialog.querySelector('.no');
       yesBtn.addEventListener('click',async ()=>{
@@ -604,14 +576,13 @@
           insertBotMessage(`Hey ${userName}! 👋<br/>Welcome back to <strong>HiveMind AI</strong>. What would you like to automate?`);
           showSuggestions([
             'Sales Automations','CRM Automations','Ecommerce Automations',
-            'Marketing Automations','Customer Service Automations',
-            'Operations Automations','Data & Reporting Automations'
+            'Marketing Automations','Customer Service Automations','Operations Automations','Data & Reporting Automations'
           ]);
         }
       });
       noBtn.addEventListener('click',()=>{confirmDialog.classList.remove('show')});
 
-      /* ---------- Suggestions ---------- */
+      /* Suggestions */
       function showSuggestions(options){
         hideSuggestions();
         suggestionContainer=document.createElement('div');suggestionContainer.id='suggestion-container';
@@ -644,7 +615,7 @@
         isWaiting=false;chatInput.disabled=false;sendBtn.disabled=false;attachBtn.disabled=false;voiceBtn.disabled=false;
       }
 
-      /* ---------- Ripple ---------- */
+      /* Ripple */
       function createRipple(event){
         const button=event.currentTarget;const circle=document.createElement('span');
         const diameter=Math.max(button.clientWidth,button.clientHeight);const radius=diameter/2;
@@ -653,27 +624,21 @@
         circle.style.left=`${event.clientX-rect.left-radius}px`;circle.style.top=`${event.clientY-rect.top-radius}px`;
         const ripples=button.getElementsByClassName('ripple');while(ripples[0]){ripples[0].remove()}button.appendChild(circle);
       }
-      [chatButton,sendBtn,startBtn].forEach(btn=>btn.addEventListener('click',createRipple));
+      ;[chatButton,sendBtn,startBtn].forEach(btn=>btn.addEventListener('click',createRipple));
 
-      /* Init */
-      populateFaq();
-      faqToggle.style.display='none';
-      clearChatBtn.style.display='none';
+      /* Parent → child commands */
+      window.addEventListener('message',(e)=>{
+        const m=e.data||{};
+        if(m.type==='hm:open') openChat();
+        if(m.type==='hm:close') closeChat();
+      });
+
+      /* Start closed and tell parent */
+      tellParent("hm:resize",{open:false});
     }
 
-    /* ---------- Lazy init ---------- */
-    (function(){
-      let hivemindInitialized=false;
-      function initOnce(){ if(hivemindInitialized) return; hivemindInitialized=true; initHiveMindChatbot(); }
-      const bubbleContainer=document.getElementById('hivemind-chatbot');
-      if(window.IntersectionObserver&&bubbleContainer){
-        const observer=new IntersectionObserver(entries=>{ if(entries[0].isIntersecting){ initOnce(); observer.disconnect(); }});
-        observer.observe(bubbleContainer);
-      }
-      ['scroll','mousemove','touchstart','keydown','click'].forEach(evt=>{
-        window.addEventListener(evt,function handler(){ initOnce(); window.removeEventListener(evt,handler,true); },{capture:true,passive:true});
-      });
-    })();
+    // Initialize immediately (no lazy init; works even if iframe starts hidden)
+    document.addEventListener('DOMContentLoaded', initHiveMindChatbot);
   </script>
 </body>
 </html>
