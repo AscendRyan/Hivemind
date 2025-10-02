@@ -1,55 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1"
-  />
-  <title>HiveMind AI – Chatbot Widget</title>
-  
-  <style>
-    /* When embedded, remove the internal launcher so it can't push content */
-    .hm-embed #chat-button { display: none !important; }
-  </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
 
-  <!-- Prevent any internal page scrollbar & keep transparent -->
+  <title>HiveMind AI – Chatbot Widget</title>
+
+  <!-- Keep the iframe page transparent + no inner page scrollbar -->
   <style>
     html, body {
       margin: 0;
       background: transparent;
-      overflow: hidden; /* no second scrollbar inside the iframe page */
+      overflow: hidden;           /* no second scrollbar inside iframe */
       color-scheme: dark;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     }
+  </style>
+
+  <!-- Hide the INTERNAL launcher button when embedded -->
+  <style>
+    .hm-embed #chat-button{ display:none !important; }
   </style>
 
   <style>
     :root{
-      /* HiveMind AI theme */
       --primary-color:#0b0618;
       --secondary-color:#d946ef;
       --secondary-hover:#a855f7;
-      --background:#0b0618;
       --user-bubble:#1c1430;
       --bot-bubble:#141024;
       --text-color:#ffffff;
       --button-text-color:#0b0618;
       --border-radius:16px;
       --transition-speed:.3s;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     }
+
     *{box-sizing:border-box;margin:0;padding:0}
 
-    /* Container is fixed within the iframe viewport.
-       We let the PARENT iframe decide placement (bottom/right offsets). */
+    /* Container fills the iframe */
     #hivemind-chatbot{
-      position:fixed; bottom:0; right:0; z-index:1000;
-      font-size:14px; display:flex; flex-direction:column-reverse; align-items:flex-end;
-      width:100%; height:100%; /* so #chat-window can fill the iframe */
+      position:fixed; inset:0; z-index:1;
+      display:flex; flex-direction:column-reverse; align-items:flex-end;
+      width:100%; height:100%;
       pointer-events:auto;
     }
 
-    /* Launcher (used when iframe is shown without external button) */
+    /* (only used if you open chatbot.html directly, not in ?embed=1 mode) */
     #chat-button{
       position:static; display:flex; align-items:center; justify-content:center;
       width:60px; height:60px; margin:10px; border-radius:50%;
@@ -57,31 +53,30 @@
       cursor:pointer; box-shadow:0 6px 12px rgba(0,0,0,.45);
       transition:transform var(--transition-speed),background var(--transition-speed);
     }
-    #chat-button:hover{transform:scale(1.05);background:var(--secondary-hover)}
-    #chat-button svg{display:block}
+    #chat-button:hover{ transform:scale(1.05); background:var(--secondary-hover) }
+    #chat-button svg{ display:block }
     #chat-button.open{
       background:#130f25; color:var(--secondary-color);
       border:2px solid var(--secondary-color);
     }
-    #chat-window.fullscreen~#chat-button{display:none}
 
-    /* Window now ALWAYS fills the iframe (no cropping). Parent controls iframe size. */
+    /* Window always fills whatever size the PARENT iframe gives it */
     #chat-window{
-      width:100%;
-      height:100%;
-      max-width:100%;
-      max-height:100%;
+      width:100%; height:100%; max-width:100%; max-height:100%;
       background:linear-gradient(145deg,#0b0618 0%,#120a27 50%,#1c1136 100%);
-      backdrop-filter:blur(18px) saturate(140%);
-      -webkit-backdrop-filter:blur(18px) saturate(140%);
+      backdrop-filter:blur(18px) saturate(140%); -webkit-backdrop-filter:blur(18px) saturate(140%);
       border-radius:var(--border-radius);
       border:1px solid rgba(255,255,255,.08);
       box-shadow:0 2px 4px rgba(0,0,0,.6),0 6px 12px rgba(0,0,0,.4),0 12px 24px rgba(0,0,0,.2);
       overflow:hidden; display:flex; flex-direction:column; position:relative;
       opacity:0; visibility:hidden; transform:translateY(60px);
-      transition:opacity var(--transition-speed),transform .4s ease,width .4s ease,height .4s ease,border-radius .4s ease,visibility 0s linear var(--transition-speed);
+      transition:
+        opacity var(--transition-speed),
+        transform .4s ease,
+        width .4s ease, height .4s ease, border-radius .4s ease,
+        visibility 0s linear var(--transition-speed);
       resize:none;
-      pointer-events:none; /* when closed, don’t intercept clicks inside iframe */
+      pointer-events:none;            /* closed: don't intercept clicks */
     }
     #chat-window.open{
       opacity:1; visibility:visible; transform:translateY(0); transition-delay:0s;
@@ -91,20 +86,20 @@
     /* Header */
     #chat-header{
       display:flex; align-items:center; justify-content:space-between;
-      background:var(--primary-color); padding:12px 16px; border-bottom:1px solid #1e1835;
+      background:#0b0618; padding:12px 16px; border-bottom:1px solid #1e1835;
       flex:0 0 auto;
     }
     #chat-header h3{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
     .hivemind-logo{width:24px;height:24px;object-fit:contain;border-radius:4px}
 
     #chat-header button{
-      background:transparent;border:none;color:var(--secondary-color);
-      font-size:20px;cursor:pointer;margin-left:8px;transition:color var(--transition-speed),transform .3s ease;
+      background:transparent; border:none; color:var(--secondary-color);
+      font-size:20px; cursor:pointer; margin-left:8px; transition:color var(--transition-speed), transform .3s ease;
     }
-    #chat-header button:hover{color:var(--secondary-hover);transform:scale(1.08)}
-    #chat-header button svg{width:20px;height:20px;display:block}
+    #chat-header button:hover{ color:var(--secondary-hover); transform:scale(1.08) }
+    #chat-header button svg{ width:20px; height:20px; display:block }
 
-    /* Fullscreen within the iframe (parent will expand iframe to full page) */
+    /* Fullscreen inside iframe (parent will expand iframe as well) */
     #chat-window.fullscreen{
       position:fixed; inset:0; width:100vw; height:100vh; border-radius:0; z-index:1001;
     }
@@ -112,7 +107,7 @@
     /* Body */
     #chat-body{
       flex:1 1 auto; overflow-y:auto; padding:16px; display:flex; flex-direction:column;
-      background:var(--primary-color); color:var(--text-color); position:relative; overflow-x:hidden;
+      background:#0b0618; color:var(--text-color); position:relative; overflow-x:hidden;
     }
     #chat-body::before{
       content:''; position:absolute; inset:0; pointer-events:none; z-index:-1;
@@ -123,12 +118,12 @@
     }
     @keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(12%, -10%)}}
 
-    /* Intake form */
+    /* Intake */
     #form-container{display:flex;flex-direction:column;gap:12px}
     #form-container label{font-weight:600;margin-bottom:4px;color:#cdbdfd}
     #form-container input{
       padding:8px 10px;border:1px solid #322856;border-radius:8px;font-size:14px;background:#181233;color:var(--text-color);
-      box-shadow:-3px -3px 6px rgba(255,255,255,.06) inset, 3px 3px 6px rgba(0,0,0,.22) inset;transition:box-shadow .12s ease-in-out,border-color .12s ease-in-out;
+      box-shadow:-3px -3px 6px rgba(255,255,255,.06) inset, 3px 3px 6px rgba(0,0,0,.22) inset;
     }
     #form-container input::placeholder{color:#8e81a8}
     #form-container input:focus{outline:none;border-color:var(--secondary-color);box-shadow:0 0 0 2px rgba(217,70,239,.25)}
@@ -137,7 +132,7 @@
       background:var(--secondary-color);color:#fff;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;font-size:14px;font-weight:700;align-self:flex-start;
       transition:background var(--transition-speed),transform var(--transition-speed); box-shadow:0 4px 8px rgba(0,0,0,.45);
     }
-    #start-btn:hover{background:var(--secondary-hover);transform:scale(1.02)}
+    #start-btn:hover{ background:var(--secondary-hover); transform:scale(1.02) }
 
     /* Messages */
     #messages-container{display:flex;flex-direction:column;overflow-x:hidden}
@@ -145,13 +140,13 @@
     .message-row.user{justify-content:flex-end}
     .message-row.bot{justify-content:flex-start}
     .message{
-      max-width:80%;padding:10px 14px;border-radius:12px;line-height:1.4;word-break:break-word;
-      animation:fadeIn .55s cubic-bezier(.22,1,.36,1) both;opacity:0;transform:translateY(10px);
-      transition:transform .15s ease-out,box-shadow .15s ease-out;will-change:transform,box-shadow;display:flex;flex-direction:column;
+      max-width:80%; padding:10px 14px; border-radius:12px; line-height:1.4; word-break:break-word;
+      animation:fadeIn .55s cubic-bezier(.22,1,.36,1) both; opacity:0; transform:translateY(10px);
+      transition:transform .15s ease-out,box-shadow .15s ease-out; will-change:transform,box-shadow; display:flex; flex-direction:column;
       box-shadow:0 1px 2px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.3);
     }
-    .message.user{background:var(--user-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 2px 16px;color:var(--text-color)}
-    .message.bot{background:var(--bot-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 16px 2px;color:var(--text-color)}
+    .message.user{background:var(--user-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 2px 16px;color:#fff}
+    .message.bot{background:var(--bot-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 16px 2px;color:#fff}
     @keyframes fadeIn{0%{opacity:0;transform:translateY(12px)}80%{opacity:1;transform:translateY(-4px)}100%{opacity:1;transform:translateY(0)}}
     .avatar{
       width:32px;height:32px;border-radius:50%;background:var(--secondary-color);color:#0b0618;
@@ -166,7 +161,7 @@
     /* Composer */
     #chat-input-container{display:flex;border-top:1px solid #1e1835;padding:8px;background:#15102b}
     #chat-input-container input{
-      flex:1;padding:8px 10px;border:1px solid #322856;border-radius:8px;font-size:14px;background:#1c1638;color:var(--text-color);
+      flex:1;padding:8px 10px;border:1px solid #322856;border-radius:8px;font-size:14px;background:#1c1638;color:#fff;
       box-shadow:-3px -3px 6px rgba(255,255,255,.06) inset, 3px 3px 6px rgba(0,0,0,.22) inset;
     }
     #chat-input-container input::placeholder{color:#8e81a8}
@@ -176,7 +171,7 @@
       transition:background var(--transition-speed),transform var(--transition-speed);
       display:flex;align-items:center;gap:6px;box-shadow:0 4px 8px rgba(0,0,0,.45)
     }
-    #send-btn:hover{background:var(--secondary-hover);transform:scale(1.02)}
+    #send-btn:hover{ background:var(--secondary-hover); transform:scale(1.02) }
     .send-icon{font-size:16px;line-height:1;margin-top:1px}
 
     /* FAQ panel */
@@ -186,82 +181,37 @@
       box-shadow:-4px 0 10px rgba(0,0,0,.5); padding:16px; display:flex; flex-direction:column; gap:10px; overflow-y:auto;
       transform:translateX(-100%); transition:transform var(--transition-speed) ease; z-index:2; overflow-x:hidden;
     }
-    #faq-panel.open{transform:translateX(0)}
+    #faq-panel.open{ transform:translateX(0) }
     .faq-btn{
-      background:#1a1432;border:1px solid #322856;border-radius:8px;padding:10px;font-size:13px;text-align:left;cursor:pointer;color:var(--text-color);
+      background:#1a1432;border:1px solid #322856;border-radius:8px;padding:10px;font-size:13px;text-align:left;cursor:pointer;color:#fff;
       transition:background var(--transition-speed),border-color var(--transition-speed),color var(--transition-speed);
     }
-    .faq-btn:hover{background:#211a40;border-color:var(--secondary-color);color:var(--secondary-color)}
+    .faq-btn:hover{ background:#211a40; border-color:var(--secondary-color); color:var(--secondary-color) }
 
-    /* Scrollbars (inner areas only) */
+    /* Inner scrollbars only */
     #faq-panel,#chat-body{scrollbar-width:thin;scrollbar-color:var(--secondary-color) #1a1432}
     #faq-panel::-webkit-scrollbar,#chat-body::-webkit-scrollbar{width:10px;height:10px}
     #faq-panel::-webkit-scrollbar-track,#chat-body::-webkit-scrollbar-track{background:#1a1432;border-radius:5px}
     #faq-panel::-webkit-scrollbar-thumb,#chat-body::-webkit-scrollbar-thumb{
-      background:linear-gradient(180deg,var(--secondary-color),#a855f7);border-radius:5px;transition:background .3s ease,box-shadow .3s ease;
-    }
-    #faq-panel::-webkit-scrollbar-thumb:hover,#chat-body::-webkit-scrollbar-thumb:hover{
-      background:linear-gradient(180deg,#e879f9,var(--secondary-color));box-shadow:0 0 10px rgba(217,70,239,.45);
+      background:linear-gradient(180deg,var(--secondary-color),#a855f7);border-radius:5px;
     }
 
-    /* Suggestions */
-    #suggestion-container{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-    .suggestion-btn{
-      padding:6px 12px;border-radius:20px;background:#1c1638;border:1px solid var(--secondary-color);color:var(--secondary-color);
-      font-size:13px;cursor:pointer;transition:background .2s ease,transform .2s ease;
-    }
-    .suggestion-btn:hover{background:#271e4d;transform:translateY(-2px)}
-    .suggestion-btn.selected{background:var(--secondary-color);color:#0b0618;border-radius:6px;border-color:var(--secondary-color);transform:scale(.95);transition:all .2s ease}
-
-    /* Files / Voice */
-    #file-preview{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-    .file-item{padding:4px 8px;border-radius:12px;background:#1c1638;color:#e879f9;font-size:12px;display:flex;align-items:center;gap:4px}
-    .file-item .remove-file{color:#ff7373;cursor:pointer;font-size:12px}
-    #voice-btn.recording{animation:pulseRing 1s infinite}
-    @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(217,70,239,.4)}70%{box-shadow:0 0 0 10px rgba(217,70,239,0)}100%{box-shadow:0 0 0 0 rgba(217,70,239,0)}}
-
-    /* Confirm dialog */
-    #confirm-dialog{
-      position:absolute; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; z-index:5; visibility:hidden; opacity:0; transition:opacity .2s ease;
-    }
-    #confirm-dialog.show{visibility:visible;opacity:1}
-    #confirm-dialog .dialog-box{
-      background:#17122e; padding:20px; border-radius:12px; box-shadow:0 2px 4px rgba(0,0,0,.2),0 4px 8px rgba(0,0,0,.1),0 8px 16px rgba(0,0,0,.05);
-      color:var(--text-color); text-align:center; max-width:80%;
-    }
-    #confirm-dialog .dialog-box p{margin-bottom:16px;font-size:14px}
-    #confirm-dialog .dialog-actions{display:flex;justify-content:center;gap:12px}
-    #confirm-dialog .dialog-actions button{padding:6px 16px;border:none;border-radius:20px;font-size:14px;cursor:pointer}
-    #confirm-dialog .dialog-actions .yes{background:var(--secondary-color);color:#0b0618}
-    #confirm-dialog .dialog-actions .no{background:#322856;color:#fff}
-
-    /* Ripple */
-    .ripple{position:absolute;border-radius:50%;transform:scale(0);animation:ripple .6s linear;background:rgba(255,255,255,.25);pointer-events:none}
-    @keyframes ripple{to{transform:scale(4);opacity:0}}
-
-    /* Typing */
-    .typing-indicator{display:inline-flex;align-items:center;gap:4px}
-    .typing-indicator span{width:6px;height:6px;border-radius:50%;background:var(--secondary-color);animation:typingPulse 1s infinite ease-in-out}
-    .typing-indicator span:nth-child(2){animation-delay:.15s}
-    .typing-indicator span:nth-child(3){animation-delay:.3s}
-    @keyframes typingPulse{0%,80%,100%{transform:scale(1);opacity:.5}40%{transform:scale(1.6);opacity:1}}
-
-    /* Mobile */
+    /* Mobile tweak */
     @media (max-width:480px){
-      #faq-panel{width:70vw}
+      #faq-panel{ width:70vw }
     }
   </style>
 </head>
 <body>
   <div id="hivemind-chatbot">
-    <!-- Launcher (only used if you load chatbot.html directly) -->
+    <!-- INTERNAL launcher (hidden in ?embed=1 mode) -->
     <div id="chat-button" title="Chat with HiveMind AI">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 3C7.03 3 3 6.58 3 11c0 3.23 2.09 5.84 5 6.87V21l4.1-2.16c.62.1 1.26.16 1.9.16 4.97 0 9-3.58 9-8s-4.03-8-9-8H12Z"/>
       </svg>
     </div>
 
-    <!-- Window (fills the iframe) -->
+    <!-- The chat window (fills iframe area) -->
     <div id="chat-window">
       <div id="chat-header">
         <h3>
@@ -382,22 +332,19 @@
       let attachments=[]; let isRecording=false; let mediaRecorder; let audioChunks=[];
       let suggestionContainer=null; let userName=''; let isWaiting=false;
 
-      /* Replace with your own webhook if needed */
       const WEBHOOK_URL='https://4flajfhr.rpcld.cc/webhook/afd20f14-dc8f-4833-b72b-b0dca66f1b92';
 
       /* Parent comms */
-      const tellParent = (type, payload={}) => {
-        try { window.parent.postMessage({ type, ...payload }, '*'); } catch(e){}
-      };
+      const tellParent = (type, payload={}) => { try{ window.parent.postMessage({ type, ...payload }, '*'); }catch(e){} };
 
       /* FAQs */
       const faqs=[
-        {question:'What types of automations do you build?',answer:'We design AI-driven automations across Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations include tools like HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more.'},
-        {question:'How long does an implementation take?',answer:'Most pilots are delivered in 1–2 weeks. Larger rollouts typically take 3–6 weeks depending on the number of workflows and integrations.'},
-        {question:'Do you support Salesforce/HubSpot?',answer:'Yes. We build lead routing, enrichment, deduping, sequence triggers, opportunity alerts, and ticket automations for both platforms.'},
-        {question:'What is your process?',answer:'We start with a discovery call → map your workflows → identify quick wins → implement a pilot → iterate based on results → scale across teams.'},
-        {question:'Can you work with our data warehouse?',answer:'Absolutely. We connect to BigQuery, Redshift, Snowflake, or Postgres for reporting automations, anomaly alerts, and dashboard updates.'},
-        {question:'Do you offer a proof of concept?',answer:'Yes—most clients start with a fixed-scope POC to validate ROI before broader rollout.'}
+        {question:'What types of automations do you build?',answer:'We design AI-driven automations across Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations include HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more.'},
+        {question:'How long does an implementation take?',answer:'Most pilots are delivered in 1–2 weeks. Larger rollouts typically take 3–6 weeks depending on scope.'},
+        {question:'Do you support Salesforce/HubSpot?',answer:'Yes—lead routing, enrichment, deduping, sequence triggers, opportunity alerts, ticket automations, and more.'},
+        {question:'What is your process?',answer:'Discovery → map workflows → quick wins → pilot → iterate → scale.'},
+        {question:'Can you work with our data warehouse?',answer:'Yes—BigQuery, Redshift, Snowflake, Postgres for reporting automations and alerts.'},
+        {question:'Do you offer a proof of concept?',answer:'Yes—most clients start with a fixed-scope POC.'}
       ];
 
       function populateFaq(){
@@ -416,27 +363,27 @@
         });
       }
 
-      function scrollToBottom(){setTimeout(()=>{messagesContainer.scrollTop=messagesContainer.scrollHeight;},50)}
+      function scrollToBottom(){ setTimeout(()=>{ messagesContainer.scrollTop=messagesContainer.scrollHeight; },50); }
 
       function insertUserMessage(text){
-        const timeString=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
+        const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
         const row=document.createElement('div');row.classList.add('message-row','user');
         const bubble=document.createElement('div');bubble.classList.add('message','user');bubble.textContent=text;
         const meta=document.createElement('div');meta.classList.add('meta');
-        const t=document.createElement('span');t.classList.add('timestamp');t.textContent=timeString;
+        const ts=document.createElement('span');ts.classList.add('timestamp');ts.textContent=t;
         const r=document.createElement('span');r.classList.add('receipt');r.textContent='✓✓';
-        meta.appendChild(t);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
+        meta.appendChild(ts);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
       }
 
       function insertBotMessage(text){
-        const timeString=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
+        const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
         const row=document.createElement('div');row.classList.add('message-row','bot');
         const avatar=document.createElement('div');avatar.classList.add('avatar');avatar.textContent='H';row.appendChild(avatar);
         const bubble=document.createElement('div');bubble.classList.add('message','bot');bubble.innerHTML=text;
         const meta=document.createElement('div');meta.classList.add('meta');
-        const t=document.createElement('span');t.classList.add('timestamp');t.textContent=timeString;
+        const ts=document.createElement('span');ts.classList.add('timestamp');ts.textContent=t;
         const r=document.createElement('span');r.classList.add('receipt');r.textContent='✓';
-        meta.appendChild(t);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
+        meta.appendChild(ts);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
       }
 
       let typingRow;
@@ -447,20 +394,19 @@
         const indicator=document.createElement('div');indicator.classList.add('typing-indicator');indicator.innerHTML='<span></span><span></span><span></span>';
         bubble.appendChild(indicator);typingRow.appendChild(bubble);messagesContainer.appendChild(typingRow);scrollToBottom();
       }
-      function hideTyping(){if(typingRow){typingRow.remove();typingRow=null}}
+      function hideTyping(){ if(typingRow){ typingRow.remove(); typingRow=null; } }
 
       function isValidUKMobile(number){
         const cleaned=number.replace(/\s+/g,'');
         return /^((\+44)?7\d{9}|07\d{9}|(\+\d{9,15}))$/.test(cleaned);
       }
 
-      /* Open/Close helpers (notify parent to resize iframe) */
       function openChat(){
         if(!chatWindow.classList.contains('open')){
           chatWindow.classList.add('open');
           chatButton.classList.add('open');
           chatButton.innerHTML = collapseIconSVG;
-          tellParent('hm:resize', { open: true });
+          tellParent('hm:resize', { open:true });
         }
       }
       function closeChat(){
@@ -469,12 +415,12 @@
           faqPanel.classList.remove('open');
           chatButton.classList.remove('open');
           chatButton.innerHTML = openIconSVG;
-          tellParent('hm:resize', { open: false });
+          tellParent('hm:resize', { open:false });
         }
       }
 
-      /* Start */
-      document.getElementById('start-btn').addEventListener('click',()=>{
+      /* Intake start */
+      startBtn.addEventListener('click',()=>{
         const name=nameInput.value.trim(); const phone=phoneInput.value.trim();
         if(!name){formError.textContent='Please enter your name.';return;}
         if(!isValidUKMobile(phone)){formError.textContent='Please enter a valid phone number.';return;}
@@ -483,7 +429,7 @@
         const sessionId=phone.replace(/\s+/g,''); userName=name;
         chatInput.disabled=false; sendBtn.disabled=false; attachBtn.disabled=false; voiceBtn.disabled=false;
 
-        insertBotMessage(`Hey ${name}! 👋<br/>Welcome to <strong>HiveMind AI</strong> — we build intelligent automation systems that supercharge your team.<br/><br/><em>What kind of automation are you exploring today?</em>`);
+        insertBotMessage(`Hey ${name}! 👋<br/>Welcome to <strong>HiveMind AI</strong>. What would you like to automate?`);
         showSuggestions([
           'Sales Automations','CRM Automations','Ecommerce Automations',
           'Marketing Automations','Customer Service Automations',
@@ -493,21 +439,18 @@
         faqToggle.style.display='inline-flex';
         clearChatBtn.style.display='inline-flex';
 
-        /* message sender (captures sessionId in closure) */
         async function sendMessage(text, files){
           let messageType='text';
-          if(files && files.length>0){
-            const hasAudio=files.some(att=>att.type && att.type.startsWith('audio/'));
-            messageType=hasAudio?'audio':'file';
-          }
           try{
             let response;
-            if(files && files.length>0){
+            if(files && files.length){
+              const hasAudio=files.some(att=>att.type && att.type.startsWith('audio/'));
+              messageType=hasAudio?'audio':'file';
               const formData=new FormData();
               formData.append('chatmessage', text || '');
               formData.append('sessionId', sessionId);
               formData.append('messageType', messageType);
-              files.forEach((att,i)=>{formData.append(`file${i}`,att.file,att.name);});
+              files.forEach((att,i)=>formData.append(`file${i}`,att.file,att.name));
               response=await fetch(WEBHOOK_URL,{method:'POST',body:formData});
             }else{
               const payload={chatmessage:text,sessionId:sessionId,messageType};
@@ -515,20 +458,18 @@
             }
             const data=await response.json();
             hideTyping();
-            if(data && data.response){insertBotMessage(data.response);} else {insertBotMessage('Sorry, an unexpected response was received.');}
+            if(data && data.response) insertBotMessage(data.response);
+            else insertBotMessage('Sorry, an unexpected response was received.');
           }catch(err){
-            hideTyping(); insertBotMessage('Sorry, there was an error contacting our service.');
-            console.error('Webhook error:',err);
+            hideTyping(); insertBotMessage('Sorry, there was an error contacting our service.'); console.error(err);
           }
         }
 
-        /* composer events */
         async function handleSend(){
           if(isWaiting) return;
           const text=chatInput.value.trim();
           if(!text && attachments.length===0) return;
-          insertUserMessage(text || (attachments.length? '📎 Attachments' : ''));
-          chatInput.value='';
+          insertUserMessage(text || (attachments.length?'📎 Attachments':'')); chatInput.value='';
           hideSuggestions(); showTyping();
           isWaiting=true; chatInput.disabled=true; sendBtn.disabled=true; attachBtn.disabled=true; voiceBtn.disabled=true;
           await sendMessage(text, attachments);
@@ -537,39 +478,31 @@
         }
 
         sendBtn.addEventListener('click', handleSend);
-        chatInput.addEventListener('keypress', e=>{if(e.key==='Enter'){e.preventDefault();handleSend();}});
+        chatInput.addEventListener('keypress', e=>{ if(e.key==='Enter'){ e.preventDefault(); handleSend(); } });
 
-        /* suggestions */
         function showSuggestions(options){
           hideSuggestions();
-          suggestionContainer=document.createElement('div');suggestionContainer.id='suggestion-container';
+          suggestionContainer=document.createElement('div'); suggestionContainer.id='suggestion-container';
           options.forEach(opt=>{
-            const btn=document.createElement('button');btn.classList.add('suggestion-btn');btn.textContent=opt;
-            btn.addEventListener('click',(event)=>{
-              btn.classList.add('selected'); createRipple(event);
-              setTimeout(()=>{ handleChoice(opt); }, 200);
-            });
-            suggestionContainer.appendChild(btn);
+            const b=document.createElement('button'); b.classList.add('suggestion-btn'); b.textContent=opt;
+            b.addEventListener('click', (ev)=>{ b.classList.add('selected'); createRipple(ev); setTimeout(()=>handleChoice(opt),200); });
+            suggestionContainer.appendChild(b);
           });
           messagesContainer.appendChild(suggestionContainer); scrollToBottom();
         }
-        function hideSuggestions(){ if(suggestionContainer){suggestionContainer.remove(); suggestionContainer=null;} }
+        function hideSuggestions(){ if(suggestionContainer){ suggestionContainer.remove(); suggestionContainer=null; } }
         function handleChoice(choice){
           if(isWaiting) return;
-          hideSuggestions(); insertUserMessage(choice);
-          showTyping();
+          hideSuggestions(); insertUserMessage(choice); showTyping();
           sendMessage(`I’m interested in ${choice}.`);
         }
 
-        /* clear chat */
         clearChatBtn.addEventListener('click',()=>{confirmDialog.classList.add('show')});
         const yesBtn=confirmDialog.querySelector('.yes');
         const noBtn=confirmDialog.querySelector('.no');
         yesBtn.addEventListener('click',async ()=>{
           messagesContainer.innerHTML=''; hideSuggestions(); confirmDialog.classList.remove('show');
-          try{
-            await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clearChat:'True',sessionId})});
-          }catch(e){console.error('Error sending clear chat payload:',e)}
+          try{ await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clearChat:'True',sessionId})}); }catch(e){}
           if(userName){
             insertBotMessage(`Hey ${userName}! 👋<br/>Welcome back to <strong>HiveMind AI</strong>. What would you like to automate?`);
             showSuggestions(['Sales Automations','CRM Automations','Ecommerce Automations','Marketing Automations','Customer Service Automations','Operations Automations','Data & Reporting Automations']);
@@ -578,48 +511,39 @@
         noBtn.addEventListener('click',()=>{confirmDialog.classList.remove('show')});
       });
 
-      /* toggle */
+      /* toggle (only used if not embedded) */
       const openIconSVG=`<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 3C7.03 3 3 6.58 3 11c0 3.23 2.09 5.84 5 6.87V21l4.1-2.16c.62.1 1.26.16 1.9.16 4.97 0 9-3.58 9-8s-4.03-8-9-8H12Z"/></svg>`;
       const collapseIconSVG=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       chatButton.innerHTML=openIconSVG;
-
-      chatButton.addEventListener('click',()=>{
-        if(chatWindow.classList.contains('open')) closeChat();
-        else openChat();
-      });
+      chatButton.addEventListener('click',()=>{ if(chatWindow.classList.contains('open')) closeChat(); else openChat(); });
 
       /* FAQ toggle */
-      document.getElementById('faq-toggle').addEventListener('click',e=>{
-        e.stopPropagation();
-        faqPanel.classList.toggle('open');
-      });
-      faqPanel.addEventListener('click',e=>{e.stopPropagation()});
-      document.addEventListener('click',e=>{
-        if(faqPanel.classList.contains('open') && !faqPanel.contains(e.target)) faqPanel.classList.remove('open');
-      });
+      faqToggle.addEventListener('click',e=>{ e.stopPropagation(); faqPanel.classList.toggle('open'); });
+      faqPanel.addEventListener('click',e=>{ e.stopPropagation(); });
+      document.addEventListener('click',e=>{ if(faqPanel.classList.contains('open') && !faqPanel.contains(e.target)) faqPanel.classList.remove('open'); });
 
       /* fullscreen */
       fullscreenToggle.addEventListener('click',()=>{
         const isFull = chatWindow.classList.toggle('fullscreen');
-        if(isFull){fullscreenToggle.setAttribute('title','Exit fullscreen');expandIcon.style.display='none';collapseIcon.style.display='block'}
-        else{fullscreenToggle.setAttribute('title','Expand to fullscreen');expandIcon.style.display='block';collapseIcon.style.display='none'}
-        tellParent("hm:fullscreen", { full: isFull });
+        if(isFull){ fullscreenToggle.setAttribute('title','Exit fullscreen'); expandIcon.style.display='none'; collapseIcon.style.display='block'; }
+        else{ fullscreenToggle.setAttribute('title','Expand to fullscreen'); expandIcon.style.display='block'; collapseIcon.style.display='none'; }
+        tellParent("hm:fullscreen", { full:isFull });
       });
 
       /* Files */
       const MAX_FILES=10; const MAX_FILE_BYTES=25*1024*1024;
       const addFilePreview = (id,label)=>{
-        const item=document.createElement('div');item.classList.add('file-item');item.dataset.id=id;item.textContent=label;
-        const remove=document.createElement('span');remove.classList.add('remove-file');remove.textContent='✕';
-        remove.addEventListener('click',()=>{attachments=attachments.filter(a=>a.id!==id);item.remove()});
-        item.appendChild(remove);filePreview.appendChild(item);
+        const item=document.createElement('div'); item.classList.add('file-item'); item.dataset.id=id; item.textContent=label;
+        const remove=document.createElement('span'); remove.classList.add('remove-file'); remove.textContent='✕';
+        remove.addEventListener('click',()=>{ attachments=attachments.filter(a=>a.id!==id); item.remove(); });
+        item.appendChild(remove); filePreview.appendChild(item);
       };
-      document.getElementById('attach-btn').addEventListener('click',()=>fileInputEl.click());
+      attachBtn.addEventListener('click',()=>fileInputEl.click());
       fileInputEl.addEventListener('change',()=>{
         const files=Array.from(fileInputEl.files||[]);
         for(const file of files){
-          if(attachments.length>=MAX_FILES){insertBotMessage(`You can attach up to ${MAX_FILES} files per message.`);break;}
-          if(file.size>MAX_FILE_BYTES){insertBotMessage(`"${file.name}" is too large. Max per file is ${Math.round(MAX_FILE_BYTES/1024/1024)}MB.`);continue;}
+          if(attachments.length>=MAX_FILES){ insertBotMessage(`You can attach up to ${MAX_FILES} files per message.`); break; }
+          if(file.size>MAX_FILE_BYTES){ insertBotMessage(`"${file.name}" is too large. Max per file is ${Math.round(MAX_FILE_BYTES/1024/1024)}MB.`); continue; }
           const id=crypto.randomUUID();
           attachments.push({id,name:file.name,label:file.name,file,type:file.type,size:file.size});
           addFilePreview(id,file.name);
@@ -632,13 +556,13 @@
         if(!isRecording){
           try{
             const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-            const mimeType=
-              MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':
-              MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm';
-            const ext=mimeType.includes('mp4')?'m4a':'webm';
+            const mimeType =
+              MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' :
+              MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
+            const ext = mimeType.includes('mp4') ? 'm4a' : 'webm';
             mediaRecorder=new MediaRecorder(stream,{mimeType});
             audioChunks=[];
-            mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0) audioChunks.push(e.data)};
+            mediaRecorder.ondataavailable=e=>{ if(e.data && e.data.size>0) audioChunks.push(e.data); };
             mediaRecorder.onstop=async ()=>{
               const blob=new Blob(audioChunks,{type:mimeType});
               const filename=`voice-message.${ext}`;
@@ -648,49 +572,46 @@
               addFilePreview(id,'Voice message');
               stream.getTracks().forEach(t=>t.stop());
             };
-            mediaRecorder.start();voiceBtn.classList.add('recording');isRecording=true;
-          }catch(err){console.error('Voice recording error:',err)}
+            mediaRecorder.start(); voiceBtn.classList.add('recording'); isRecording=true;
+          }catch(err){ console.error('Voice recording error:',err); }
         }else{
-          mediaRecorder.stop();voiceBtn.classList.remove('recording');isRecording=false;
+          mediaRecorder.stop(); voiceBtn.classList.remove('recording'); isRecording=false;
         }
       });
 
       /* Ripple */
       function createRipple(event){
-        const button=event.currentTarget;const circle=document.createElement('span');
-        const diameter=Math.max(button.clientWidth,button.clientHeight);const radius=diameter/2;
-        circle.classList.add('ripple');circle.style.width=circle.style.height=`${diameter}px`;
+        const button=event.currentTarget; const circle=document.createElement('span');
+        const diameter=Math.max(button.clientWidth,button.clientHeight); const radius=diameter/2;
+        circle.classList.add('ripple'); circle.style.width=circle.style.height=`${diameter}px`;
         const rect=button.getBoundingClientRect();
-        circle.style.left=`${event.clientX-rect.left-radius}px`;circle.style.top=`${event.clientY-rect.top-radius}px`;
-        const ripples=button.getElementsByClassName('ripple');while(ripples[0]){ripples[0].remove()}button.appendChild(circle);
+        circle.style.left=`${event.clientX-rect.left-radius}px`; circle.style.top=`${event.clientY-rect.top-radius}px`;
+        const ripples=button.getElementsByClassName('ripple'); while(ripples[0]) ripples[0].remove();
+        button.appendChild(circle);
       }
       [chatButton,sendBtn,startBtn].forEach(btn=>btn.addEventListener('click',createRipple));
 
-      /* Parent can command open/close/fullscreen */
+      /* Parent commands */
       window.addEventListener('message',(e)=>{
         const m=e.data||{};
         if(m.type==='hm:open')  openChat();
         if(m.type==='hm:close') closeChat();
-        if(m.type==='hm:fullscreen'){
-          const isFull=!!m.full;
-          chatWindow.classList.toggle('fullscreen', isFull);
-        }
+        if(m.type==='hm:fullscreen') chatWindow.classList.toggle('fullscreen', !!m.full);
       });
 
-      /* FAQs list */
+      /* FAQs list + initial state */
       populateFaq();
-
-      /* Initial state (closed) */
       tellParent('hm:resize', { open:false });
     }
 
-    /* Init immediately (inside an iframe this is cheap) */
+    /* Boot: mark embed mode, then init */
     document.addEventListener('DOMContentLoaded', () => {
       const qs = new URLSearchParams(location.search);
       if (qs.has('embed') || qs.get('embedded') === '1') {
-        document.documentElement.classList.add('hm-embed');
+        document.documentElement.classList.add('hm-embed');   /* hides internal launcher */
       }
       initHiveMindChatbot();
-      </script>
+    });
+  </script>
 </body>
 </html>
