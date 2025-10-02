@@ -14,6 +14,8 @@ import Skin from "./pages/Skin";
 import SkinHeader from "./pages/SkinHeader";
 import SkinBG from "./pages/SkinBG";
 import SkinFooter from "./pages/SkinFooter";
+import SkinHeaderBare from "./pages/SkinHeaderBare";
+import SkinFooterBare from "./pages/SkinFooterBare";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/skin-header" element={<SkinHeader />} />
             <Route path="/skin-bg" element={<SkinBG />} />
             <Route path="/skin-footer" element={<SkinFooter />} />
+            <Route path="/skin-header-bare" element={<SkinHeaderBare />} />
+            <Route path="/skin-footer-bare" element={<SkinFooterBare />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
