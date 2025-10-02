@@ -1,33 +1,46 @@
-// src/pages/SkinHeaderBare.tsx
 import { useEffect } from "react";
 import { Header } from "@/components/Header";
 
 export default function SkinHeaderBare() {
   useEffect(() => {
-    // Make the iframe page truly transparent and remove default UA margins
-    const docEl = document.documentElement;
+    const html = document.documentElement;
     const body = document.body;
-    docEl.style.background = "transparent";
+
+    // transparent, no UA margins, no child scrollbars
+    html.style.background = "transparent";
     body.style.background = "transparent";
-    docEl.style.margin = "0";
+    html.style.margin = "0";
     body.style.margin = "0";
-    body.style.overflow = "hidden"; // prevent child scrollbars
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+
+    // force header to be static (the IFRAME itself is fixed)
+    const style = document.createElement("style");
+    style.textContent = `
+      header{position:static !important;top:auto !important;left:auto !important;right:auto !important;
+             background:transparent !important;backdrop-filter:none !important;box-shadow:none !important;border:0 !important;}
+    `;
+    document.head.appendChild(style);
+
+    // report height to parent (auto-sizes the iframe; avoids clipping/scrollbars)
+    const el = document.querySelector("header") as HTMLElement | null;
+    const send = () => {
+      const h = (el?.offsetHeight || document.documentElement.scrollHeight) | 0;
+      window.parent?.postMessage({ type: "skin:resize", role: "header", height: h }, "*");
+    };
+    const ro = new ResizeObserver(send);
+    if (el) ro.observe(el);
+    window.addEventListener("load", send);
+    window.addEventListener("resize", send);
+    send();
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("load", send);
+      window.removeEventListener("resize", send);
+      style.remove();
+    };
   }, []);
 
-  return (
-    <div style={{ height: "auto" }}>
-      {/* Force the header to render without background/blur/border and NOT fixed */}
-      <style>{`
-        header {
-          position: static !important;   /* child header shouldn't be fixed; the iframe is fixed already */
-          top: auto !important; left: auto !important; right: auto !important;
-          background: transparent !important;
-          backdrop-filter: none !important;
-          box-shadow: none !important;
-          border: 0 !important;
-        }
-      `}</style>
-      <Header /* variant="bare" if you implemented it; overrides above make it safe either way */ />
-    </div>
-  );
+  return <Header />;
 }
