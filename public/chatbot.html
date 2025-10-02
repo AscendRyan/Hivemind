@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    html,body{margin:0;background:transparent;overflow:hidden}
+  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HiveMind AI – Chatbot Widget</title>
+
+  <!-- Preconnect to your webhook domain (replace href with your own if needed) -->
+  <link rel="preconnect" href="https://example.com"/>
+
+  <style>
+    :root{
+      /* HiveMind AI theme — sampled to match the landing page */
+      --primary-color:#0b0618;         /* deep, near-black violet */
+      --secondary-color:#d946ef;       /* vivid fuchsia accent */
+      --secondary-hover:#a855f7;       /* violet accent on hover */
+      --background:#0b0618;
+      --user-bubble:#1c1430;
+      --bot-bubble:#141024;
+      --text-color:#ffffff;
+      --button-text-color:#0b0618;
+      --border-radius:16px;
+      --transition-speed:.3s;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    /* ---------- Container ---------- */
+    #hivemind-chatbot{
+      position:fixed;bottom:20px;right:20px;z-index:1000;
+      font-size:14px;display:flex;flex-direction:column-reverse;align-items:flex-end;
+    }
+
+    /* ---------- Launcher Button ---------- */
+    #chat-button{
+      position:static;display:flex;align-items:center;justify-content:center;
+      width:60px;height:60px;margin-bottom:10px;border-radius:50%;
+      background:var(--secondary-color);color:var(--button-text-color);
+      cursor:pointer;box-shadow:0 6px 12px rgba(0,0,0,.45);
+      transition:transform var(--transition-speed),background var(--transition-speed);
+    }
+    #chat-button:hover{transform:scale(1.05);background:var(--secondary-hover)}
+    #chat-button svg{display:block}
+    #chat-button.open{
+      background:#130f25;color:var(--secondary-color);
+      border:2px solid var(--secondary-color);
+    }
+    #chat-window.fullscreen~#chat-button{display:none}
+
+    /* ---------- Window ---------- */
+    #chat-window{
+      width:360px;max-width:90vw;height:580px;
+      background:linear-gradient(145deg,#0b0618 0%,#120a27 50%,#1c1136 100%);
+      backdrop-filter:blur(18px) saturate(140%);
+      -webkit-backdrop-filter:blur(18px) saturate(140%);
+      border-radius:var(--border-radius);
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 2px 4px rgba(0,0,0,.6),0 6px 12px rgba(0,0,0,.4),0 12px 24px rgba(0,0,0,.2);
+      overflow:hidden;display:flex;flex-direction:column;position:relative;
+      opacity:0;visibility:hidden;transform:translateY(60px);
+      transition:opacity var(--transition-speed),transform .4s ease,width .4s ease,height .4s ease,border-radius .4s ease,visibility 0s linear var(--transition-speed);
+      resize:none;overflow-y:auto;
+    }
+    #chat-window.open{opacity:1;visibility:visible;transform:translateY(0);transition-delay:0s}
+
+    /* ---------- Header ---------- */
+    #chat-header{
+      display:flex;align-items:center;justify-content:space-between;
+      background:var(--primary-color);padding:12px 16px;border-bottom:1px solid #1e1835;
+    }
+    #chat-header h3{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+    .hivemind-logo{width:24px;height:24px;object-fit:contain;border-radius:4px}
+
+    #chat-header button{
+      background:transparent;border:none;color:var(--secondary-color);
+      font-size:20px;cursor:pointer;margin-left:8px;transition:color var(--transition-speed),transform .3s ease;
+    }
+    #chat-header button:hover{color:var(--secondary-hover);transform:scale(1.08)}
+    #chat-header button svg{width:20px;height:20px;display:block}
+
+    /* ---------- Fullscreen ---------- */
+    #chat-window.fullscreen{
+      position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0;z-index:1001;
+    }
+
+    /* ---------- Body ---------- */
+    #chat-body{
+      flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;
+      background:var(--primary-color);color:var(--text-color);position:relative;overflow-x:hidden;
+    }
+    /* Subtle particle-glow overlay inspired by landing hero */
+    #chat-body::before{
+      content:'';position:absolute;inset:0;pointer-events:none;z-index:-1;
+      background:
+        radial-gradient(circle at 30% 70%, rgba(217,70,239,.08), transparent 55%),
+        radial-gradient(circle at 80% 20%, rgba(168,85,247,.06), transparent 45%);
+      animation:drift 28s linear infinite alternate;
+    }
+    @keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(12%, -10%)}}
+
+    /* ---------- Intake Form ---------- */
+    #form-container{display:flex;flex-direction:column;gap:12px}
+    #form-container label{font-weight:600;margin-bottom:4px;color:#cdbdfd}
+    #form-container input{
+      padding:8px 10px;border:1px solid #322856;border-radius:8px;font-size:14px;background:#181233;color:var(--text-color);
+      box-shadow:-3px -3px 6px rgba(255,255,255,.06) inset, 3px 3px 6px rgba(0,0,0,.22) inset;transition:box-shadow .12s ease-in-out,border-color .12s ease-in-out;
+    }
+    #form-container input::placeholder{color:#8e81a8}
+    #form-container input:focus{outline:none;border-color:var(--secondary-color);box-shadow:0 0 0 2px rgba(217,70,239,.25)}
+    #form-error{color:#ff6b6b;font-size:12px;height:14px}
+    #start-btn{
+      background:var(--secondary-color);color:#fff;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;font-size:14px;font-weight:700;align-self:flex-start;
+      transition:background var(--transition-speed),transform var(--transition-speed);
+      box-shadow:0 4px 8px rgba(0,0,0,.45);
+    }
+    #start-btn:hover{background:var(--secondary-hover);transform:scale(1.02)}
+
+    /* ---------- Messages ---------- */
+    #messages-container{display:flex;flex-direction:column;overflow-x:hidden}
+    .message-row{display:flex;margin-bottom:10px}
+    .message-row.user{justify-content:flex-end}
+    .message-row.bot{justify-content:flex-start}
+
+    .message{
+      max-width:80%;padding:10px 14px;border-radius:12px;line-height:1.4;word-break:break-word;
+      animation:fadeIn .55s cubic-bezier(.22,1,.36,1) both;opacity:0;transform:translateY(10px);
+      transition:transform .15s ease-out,box-shadow .15s ease-out;will-change:transform,box-shadow;display:flex;flex-direction:column;
+      box-shadow:0 1px 2px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.3);
+    }
+    .message.user{
+      background:var(--user-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 2px 16px;color:var(--text-color);
+    }
+    .message.bot{
+      background:var(--bot-bubble);border-left:3px solid var(--secondary-color);border-radius:16px 16px 16px 2px;color:var(--text-color);
+    }
+    @keyframes fadeIn{0%{opacity:0;transform:translateY(12px)}80%{opacity:1;transform:translateY(-4px)}100%{opacity:1;transform:translateY(0)}}
+
+    .avatar{
+      width:32px;height:32px;border-radius:50%;background:var(--secondary-color);color:#0b0618;
+      display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin-right:8px;flex-shrink:0;
+      animation:avatarNod 8s ease-in-out infinite;
+    }
+    @keyframes avatarNod{0%,95%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+
+    .message .meta{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:10px;color:#a39ac7;margin-top:4px}
+    .message .meta .receipt{font-size:12px;color:var(--secondary-color)}
+    .message-row:hover .message{transform:scale(1.02);box-shadow:0 3px 5px rgba(0,0,0,.25),0 6px 12px rgba(0,0,0,.15),0 12px 24px rgba(0,0,0,.08)}
+
+    /* ---------- Composer ---------- */
+    #chat-input-container{display:flex;border-top:1px solid #1e1835;padding:8px;background:#15102b}
+    #chat-input-container input{
+      flex:1;padding:8px 10px;border:1px solid #322856;border-radius:8px;font-size:14px;background:#1c1638;color:var(--text-color);
+      box-shadow:-3px -3px 6px rgba(255,255,255,.06) inset, 3px 3px 6px rgba(0,0,0,.22) inset;
+    }
+    #chat-input-container input::placeholder{color:#8e81a8}
+    #chat-input-container input:focus{outline:none;border-color:var(--secondary-color);box-shadow:0 0 0 2px rgba(217,70,239,.25)}
+    #send-btn{
+      background:var(--secondary-color);color:#fff;border:none;padding:8px 20px;margin-left:8px;border-radius:20px;cursor:pointer;font-weight:700;
+      transition:background var(--transition-speed),transform var(--transition-speed);
+      display:flex;align-items:center;gap:6px;box-shadow:0 4px 8px rgba(0,0,0,.45)
+    }
+    #send-btn:hover{background:var(--secondary-hover);transform:scale(1.02)}
+    .send-icon{font-size:16px;line-height:1;margin-top:1px}
+
+    /* ---------- FAQ Panel ---------- */
+    #faq-panel{
+      position:absolute;top:0;left:0;width:240px;height:100%;background:#120d25;
+      border-top-left-radius:var(--border-radius);border-bottom-left-radius:var(--border-radius);
+      box-shadow:-4px 0 10px rgba(0,0,0,.5);padding:16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;
+      transform:translateX(-100%);transition:transform var(--transition-speed) ease;z-index:2;overflow-x:hidden;
+    }
+    #faq-panel.open{transform:translateX(0)}
+    .faq-btn{
+      background:#1a1432;border:1px solid #322856;border-radius:8px;padding:10px;font-size:13px;text-align:left;cursor:pointer;color:var(--text-color);
+      transition:background var(--transition-speed),border-color var(--transition-speed),color var(--transition-speed);
+    }
+    .faq-btn:hover{background:#211a40;border-color:var(--secondary-color);color:var(--secondary-color)}
+
+    /* ---------- Scrollbars ---------- */
+    #faq-panel,#chat-body{scrollbar-width:thin;scrollbar-color:var(--secondary-color) #1a1432}
+    #faq-panel::-webkit-scrollbar,#chat-body::-webkit-scrollbar{width:10px;height:10px}
+    #faq-panel::-webkit-scrollbar-track,#chat-body::-webkit-scrollbar-track{background:#1a1432;border-radius:5px}
+    #faq-panel::-webkit-scrollbar-thumb,#chat-body::-webkit-scrollbar-thumb{
+      background:linear-gradient(180deg,var(--secondary-color),#a855f7);border-radius:5px;transition:background .3s ease,box-shadow .3s ease;
+    }
+    #faq-panel::-webkit-scrollbar-thumb:hover,#chat-body::-webkit-scrollbar-thumb:hover{
+      background:linear-gradient(180deg,#e879f9,var(--secondary-color));box-shadow:0 0 10px rgba(217,70,239,.45);
+    }
+
+    /* ---------- Suggestions ---------- */
+    #suggestion-container{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .suggestion-btn{
+      padding:6px 12px;border-radius:20px;background:#1c1638;border:1px solid var(--secondary-color);color:var(--secondary-color);
+      font-size:13px;cursor:pointer;transition:background .2s ease,transform .2s ease;
+    }
+    .suggestion-btn:hover{background:#271e4d;transform:translateY(-2px)}
+    .suggestion-btn.selected{background:var(--secondary-color);color:#0b0618;border-radius:6px;border-color:var(--secondary-color);transform:scale(.95);transition:all .2s ease}
+
+    /* ---------- File / Voice ---------- */
+    #file-preview{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+    .file-item{padding:4px 8px;border-radius:12px;background:#1c1638;color:#e879f9;font-size:12px;display:flex;align-items:center;gap:4px}
+    .file-item .remove-file{color:#ff7373;cursor:pointer;font-size:12px}
+    #voice-btn.recording{animation:pulseRing 1s infinite}
+    @keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(217,70,239,.4)}70%{box-shadow:0 0 0 10px rgba(217,70,239,0)}100%{box-shadow:0 0 0 0 rgba(217,70,239,0)}}
+
+    /* ---------- Confirm dialog ---------- */
+    #confirm-dialog{
+      position:absolute;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:5;visibility:hidden;opacity:0;transition:opacity .2s ease;
+    }
+    #confirm-dialog.show{visibility:visible;opacity:1}
+    #confirm-dialog .dialog-box{
+      background:#17122e;padding:20px;border-radius:12px;box-shadow:0 2px 4px rgba(0,0,0,.2),0 4px 8px rgba(0,0,0,.1),0 8px 16px rgba(0,0,0,.05);
+      color:var(--text-color);text-align:center;max-width:80%;
+    }
+    #confirm-dialog .dialog-box p{margin-bottom:16px;font-size:14px}
+    #confirm-dialog .dialog-actions{display:flex;justify-content:center;gap:12px}
+    #confirm-dialog .dialog-actions button{padding:6px 16px;border:none;border-radius:20px;font-size:14px;cursor:pointer}
+    #confirm-dialog .dialog-actions .yes{background:var(--secondary-color);color:#0b0618}
+    #confirm-dialog .dialog-actions .no{background:#322856;color:#fff}
+
+    /* ---------- Ripple ---------- */
+    .ripple{position:absolute;border-radius:50%;transform:scale(0);animation:ripple .6s linear;background:rgba(255,255,255,.25);pointer-events:none}
+    @keyframes ripple{to{transform:scale(4);opacity:0}}
+
+    /* ---------- Typing ---------- */
+    .typing-indicator{display:inline-flex;align-items:center;gap:4px}
+    .typing-indicator span{width:6px;height:6px;border-radius:50%;background:var(--secondary-color);animation:typingPulse 1s infinite ease-in-out}
+    .typing-indicator span:nth-child(2){animation-delay:.15s}
+    .typing-indicator span:nth-child(3){animation-delay:.3s}
+    @keyframes typingPulse{0%,80%,100%{transform:scale(1);opacity:.5}40%{transform:scale(1.6);opacity:1}}
+
+    /* ---------- Responsive ---------- */
+    @media (max-width:480px){
+      #chat-window{width:100vw;height:70vh}
+      #faq-panel{width:70vw}
+    }
+  </style>
+</head>
+<body>
+  <div id="hivemind-chatbot">
+    <!-- Launcher -->
+    <div id="chat-button" title="Chat with HiveMind AI">
+      <!-- Chat bubble icon -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3C7.03 3 3 6.58 3 11c0 3.23 2.09 5.84 5 6.87V21l4.1-2.16c.62.1 1.26.16 1.9.16 4.97 0 9-3.58 9-8s-4.03-8-9-8H12Z" fill="currentColor"/>
+      </svg>
+    </div>
+
+    <!-- Window -->
+    <div id="chat-window">
+      <div id="chat-header">
+        <h3>
+          <!-- Replace src with your real logo if you have one -->
+          <img class="hivemind-logo" alt="HiveMind logo"
+               src="https://upload.wikimedia.org/wikipedia/commons/3/38/Hexagon_Icon.svg"/>
+          HiveMind AI
+        </h3>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button id="clear-chat" title="Restart conversation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.05 11a8 8 0 0 1 13.82-5.36L19 4"/><polyline points="23 4 19 4 19 8"/>
+              <path d="M19.95 13a8 8 0 0 1-13.82 5.36L5 20"/><polyline points="1 20 5 20 5 16"/>
+            </svg>
+          </button>
+          <button id="faq-toggle" title="Frequently Asked Questions">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1.93 7.93l-.64.64c-.89.88-1.29 1.48-1.29 2.43v.5h-2v-.5c0-1.22.49-2.06 1.36-2.94l1.2-1.19A2 2 0 1 0 10 6.5a2 2 0 1 0 4 0c0 .84-.35 1.64-.94 2.33zm-.92 8.57a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+            </svg>
+          </button>
+          <button id="fullscreen-toggle" title="Expand to fullscreen">
+            <svg id="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 9 9 9 9 3"/><polyline points="21 15 15 15 15 21"/>
+              <line x1="15" y1="9" x2="21" y2="3"/><line x1="9" y1="15" x2="3" y2="21"/>
+            </svg>
+            <svg id="collapse-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+              <polyline points="7 14 14 14 14 7"/><polyline points="17 10 10 10 10 17"/>
+              <line x1="14" y1="14" x2="21" y2="21"/><line x1="10" y1="10" x2="3" y2="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="chat-body">
+        <!-- Intake -->
+        <div id="form-container">
+          <p style="color:#cdbdfd;margin-bottom:8px;font-size:14px">
+            Share a couple details so we can tailor recommendations.
+          </p>
+          <div>
+            <label for="user-name">Name</label>
+            <input type="text" id="user-name" placeholder="Your name" required/>
+          </div>
+          <div>
+            <label for="phone-number">Phone Number</label>
+            <input type="tel" id="phone-number" placeholder="Mobile number (UK/INTL)" required/>
+          </div>
+          <div id="form-error"></div>
+          <button id="start-btn">Start Chat</button>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages-container" class="hidden" aria-live="polite"></div>
+      </div>
+
+      <!-- Attachments preview -->
+      <div id="file-preview"></div>
+
+      <!-- Composer -->
+      <div id="chat-input-container" class="hidden">
+        <button id="attach-btn" title="Attach file" style="background:transparent;border:none;color:var(--secondary-color);font-size:18px;margin-right:6px;cursor:pointer;display:flex;align-items:center;justify-content:center" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79l-9.19 9.18a4.5 4.5 0 0 1-6.36 0l-1-1a4.5 4.5 0 0 1 0-6.36L12.73 3.21a3 3 0 0 1 4.24 0l3.07 3.07a3 3 0 0 1 0 4.24l-7.07 7.07a1.5 1.5 0 0 1-2.12 0l-1-1a1.5 1.5 0 0 1 0-2.12l6.36-6.36"/>
+          </svg>
+        </button>
+        <button id="voice-btn" title="Record voice" style="background:transparent;border:none;color:var(--secondary-color);font-size:18px;margin-right:6px;cursor:pointer;display:flex;align-items:center;justify-content:center" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/>
+            <path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+        <input type="text" id="chat-input" placeholder="Type your message…" autocomplete="off" disabled/>
+        <button id="send-btn" disabled><span>Send</span> <span class="send-icon">➤</span></button>
+        <input type="file" id="file-input" multiple style="display:none"
+               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.rtf,.csv,.html,.htm,.odt,.ods,.odp,image/*"/>
+      </div>
+
+      <!-- FAQ -->
+      <div id="faq-panel"></div>
+
+      <!-- Confirm -->
+      <div id="confirm-dialog">
+        <div class="dialog-box">
+          <p>Clear the conversation and start over?</p>
+          <div class="dialog-actions">
+            <button class="yes">Yes</button>
+            <button class="no">No</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function initHiveMindChatbot(){
+      const chatButton=document.getElementById('chat-button');
+      const chatWindow=document.getElementById('chat-window');
+      const clearChatBtn=document.getElementById('clear-chat');
+      const formContainer=document.getElementById('form-container');
+      const messagesContainer=document.getElementById('messages-container');
+      const chatInputContainer=document.getElementById('chat-input-container');
+      const chatInput=document.getElementById('chat-input');
+      const sendBtn=document.getElementById('send-btn');
+      const startBtn=document.getElementById('start-btn');
+      const phoneInput=document.getElementById('phone-number');
+      const nameInput=document.getElementById('user-name');
+      const formError=document.getElementById('form-error');
+      const faqPanel=document.getElementById('faq-panel');
+      const faqToggle=document.getElementById('faq-toggle');
+
+      const fullscreenToggle=document.getElementById('fullscreen-toggle');
+      const expandIcon=document.getElementById('expand-icon');
+      const collapseIcon=document.getElementById('collapse-icon');
+
+      const attachBtn=document.getElementById('attach-btn');
+      const voiceBtn=document.getElementById('voice-btn');
+      const fileInputEl=document.getElementById('file-input');
+      const filePreview=document.getElementById('file-preview');
+      const confirmDialog=document.getElementById('confirm-dialog');
+
+      let attachments=[];
+      let isRecording=false;let mediaRecorder;let audioChunks=[];
+      let suggestionContainer=null;
+      let userName='';
+      let isWaiting=false;
+
+      /* Replace with your own webhook if needed */
+      const WEBHOOK_URL='https://4flajfhr.rpcld.cc/webhook/afd20f14-dc8f-4833-b72b-b0dca66f1b92';
+      let sessionId=null;
+
+      /* ---------- HiveMind FAQs (automation-focused) ---------- */
+      const faqs=[
+        {question:'What types of automations do you build?',answer:'We design AI-driven automations across Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations include tools like HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more.'},
+        {question:'How long does an implementation take?',answer:'Most pilots are delivered in 1–2 weeks. Larger rollouts typically take 3–6 weeks depending on the number of workflows and integrations.'},
+        {question:'Do you support Salesforce/HubSpot?',answer:'Yes. We build lead routing, enrichment, deduping, sequence triggers, opportunity alerts, and ticket automations for both platforms.'},
+        {question:'What is your process?',answer:'We start with a discovery call → map your workflows → identify quick wins → implement a pilot → iterate based on results → scale across teams.'},
+        {question:'Can you work with our data warehouse?',answer:'Absolutely. We connect to BigQuery, Redshift, Snowflake, or Postgres for reporting automations, anomaly alerts, and dashboard updates.'},
+        {question:'Do you offer a proof of concept?',answer:'Yes—most clients start with a fixed-scope POC to validate ROI before broader rollout.'}
+      ];
+
+      function populateFaq(){
+        faqs.forEach(item=>{
+          const btn=document.createElement('button');
+          btn.classList.add('faq-btn');
+          btn.textContent=item.question;
+          btn.addEventListener('click',()=>{
+            hideSuggestions();
+            insertUserMessage(item.question);
+            showTyping();
+            setTimeout(()=>{hideTyping();insertBotMessage(item.answer);},300);
+            faqPanel.classList.remove('open');
+          });
+          faqPanel.appendChild(btn);
+        });
+      }
+
+      function scrollToBottom(){setTimeout(()=>{messagesContainer.scrollTop=messagesContainer.scrollHeight;},50)}
+
+      function insertUserMessage(text){
+        const timeString=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
+        const row=document.createElement('div');row.classList.add('message-row','user');
+        const bubble=document.createElement('div');bubble.classList.add('message','user');bubble.textContent=text;
+        const meta=document.createElement('div');meta.classList.add('meta');
+        const t=document.createElement('span');t.classList.add('timestamp');t.textContent=timeString;
+        const r=document.createElement('span');r.classList.add('receipt');r.textContent='✓✓';
+        meta.appendChild(t);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
+      }
+
+      function insertBotMessage(text){
+        const timeString=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
+        const row=document.createElement('div');row.classList.add('message-row','bot');
+        const avatar=document.createElement('div');avatar.classList.add('avatar');avatar.textContent='H';row.appendChild(avatar);
+        const bubble=document.createElement('div');bubble.classList.add('message','bot');bubble.innerHTML=text;
+        const meta=document.createElement('div');meta.classList.add('meta');
+        const t=document.createElement('span');t.classList.add('timestamp');t.textContent=timeString;
+        const r=document.createElement('span');r.classList.add('receipt');r.textContent='✓';
+        meta.appendChild(t);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
+      }
+
+      let typingRow;
+      function showTyping(){
+        typingRow=document.createElement('div');typingRow.classList.add('message-row','bot');
+        const avatar=document.createElement('div');avatar.classList.add('avatar');avatar.textContent='H';typingRow.appendChild(avatar);
+        const bubble=document.createElement('div');bubble.classList.add('message','bot');
+        const indicator=document.createElement('div');indicator.classList.add('typing-indicator');indicator.innerHTML='<span></span><span></span><span></span>';
+        bubble.appendChild(indicator);typingRow.appendChild(bubble);messagesContainer.appendChild(typingRow);scrollToBottom();
+      }
+      function hideTyping(){if(typingRow){typingRow.remove();typingRow=null}}
+
+      function isValidUKMobile(number){
+        const cleaned=number.replace(/\s+/g,'');
+        return /^((\+44)?7\d{9}|07\d{9}|(\+\d{9,15}))$/.test(cleaned); // accepts UK and generic intl
+      }
+
+      startBtn.addEventListener('click',()=>{
+        const name=nameInput.value.trim();const phone=phoneInput.value.trim();
+        if(!name){formError.textContent='Please enter your name.';return;}
+        if(!isValidUKMobile(phone)){formError.textContent='Please enter a valid phone number.';return;}
+        formError.textContent='';formContainer.style.display='none';
+        messagesContainer.classList.remove('hidden');chatInputContainer.classList.remove('hidden');
+        sessionId=phone.replace(/\s+/g,'');userName=name;
+        chatInput.disabled=false;sendBtn.disabled=false;attachBtn.disabled=false;voiceBtn.disabled=false;
+
+        insertBotMessage(`Hey ${name}! 👋<br/>Welcome to <strong>HiveMind AI</strong> — we build intelligent automation systems that supercharge your team.<br/><br/><em>What kind of automation are you exploring today?</em>`);
+        showSuggestions([
+          'Sales Automations',
+          'CRM Automations',
+          'Ecommerce Automations',
+          'Marketing Automations',
+          'Customer Service Automations',
+          'Operations Automations',
+          'Data & Reporting Automations'
+        ]);
+
+        faqToggle.style.display='inline-flex';
+        clearChatBtn.style.display='inline-flex';
+      });
+
+      async function sendMessage(){
+        if(!userName||isWaiting) return;
+        const text=chatInput.value.trim();
+        if(!text&&attachments.length===0) return;
+
+        let messageContent=text;
+        if(attachments.length>0){
+          const names=attachments.map(a=>`📎 ${a.label}`).join('<br/>');
+          messageContent+=(text?'<br/>':'')+names;
+        }
+        insertUserMessage(messageContent);
+        chatInput.value='';hideSuggestions();showTyping();
+        isWaiting=true;chatInput.disabled=true;sendBtn.disabled=true;attachBtn.disabled=true;voiceBtn.disabled=true;
+
+        let response;
+        try{
+          let messageType='text';
+          if(attachments.length>0){
+            const hasAudio=attachments.some(att=>att.type&&att.type.startsWith('audio/'));
+            messageType=hasAudio?'audio':'file';
+          }
+          if(attachments.length>0){
+            const formData=new FormData();
+            formData.append('chatmessage',text);
+            formData.append('sessionId',sessionId);
+            formData.append('messageType',messageType);
+            attachments.forEach((att,i)=>{formData.append(`file${i}`,att.file,att.name);});
+            response=await fetch(WEBHOOK_URL,{method:'POST',body:formData});
+          }else{
+            const payload={chatmessage:text,sessionId:sessionId,messageType};
+            response=await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          }
+          attachments=[];filePreview.innerHTML='';
+          const data=await response.json();hideTyping();
+          if(data&&data.response){insertBotMessage(data.response);}else{insertBotMessage('Sorry, an unexpected response was received.')}
+        }catch(err){
+          hideTyping();insertBotMessage('Sorry, there was an error contacting our service.');console.error('Webhook error:',err);
+        }
+        isWaiting=false;chatInput.disabled=false;sendBtn.disabled=false;attachBtn.disabled=false;voiceBtn.disabled=false;
+      }
+
+      sendBtn.addEventListener('click',sendMessage);
+      chatInput.addEventListener('keypress',e=>{if(e.key==='Enter'){e.preventDefault();sendMessage();}});
+
+      const openIconSVG=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3C7.03 3 3 6.58 3 11c0 3.23 2.09 5.84 5 6.87V21l4.1-2.16c.62.1 1.26.16 1.9.16 4.97 0 9-3.58 9-8s-4.03-8-9-8H12Z" fill="currentColor"/></svg>`;
+      const collapseIconSVG=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      chatButton.innerHTML=openIconSVG;
+
+      chatButton.addEventListener('click',()=>{
+        if(chatWindow.classList.contains('open')){
+          chatWindow.classList.remove('open');faqPanel.classList.remove('open');
+          chatButton.innerHTML=openIconSVG;chatButton.classList.remove('open');
+        }else{
+          chatWindow.classList.add('open');chatButton.innerHTML=collapseIconSVG;chatButton.classList.add('open');
+        }
+      });
+
+      clearChatBtn.addEventListener('click',()=>{confirmDialog.classList.add('show')});
+      faqToggle.addEventListener('click',e=>{e.stopPropagation();faqPanel.classList.toggle('open')});
+      faqPanel.addEventListener('click',e=>{e.stopPropagation()});
+      document.addEventListener('click',e=>{if(faqPanel.classList.contains('open')&&!faqPanel.contains(e.target)&&e.target!==faqToggle){faqPanel.classList.remove('open')}});
+
+      fullscreenToggle.addEventListener('click',()=>{
+        const isFull=chatWindow.classList.toggle('fullscreen');
+        if(isFull){fullscreenToggle.setAttribute('title','Exit fullscreen');expandIcon.style.display='none';collapseIcon.style.display='block'}
+        else{fullscreenToggle.setAttribute('title','Expand to fullscreen');expandIcon.style.display='block';collapseIcon.style.display='none'}
+      });
+
+      /* ---------- Files ---------- */
+      attachBtn.addEventListener('click',()=>fileInputEl.click());
+      const MAX_FILES=10;const MAX_FILE_BYTES=25*1024*1024;
+      fileInputEl.addEventListener('change',()=>{
+        const files=Array.from(fileInputEl.files||[]);
+        for(const file of files){
+          if(attachments.length>=MAX_FILES){insertBotMessage(`You can attach up to ${MAX_FILES} files per message.`);break;}
+          if(file.size>MAX_FILE_BYTES){insertBotMessage(`"${file.name}" is too large. Max per file is ${Math.round(MAX_FILE_BYTES/1024/1024)}MB.`);continue;}
+          const id=crypto.randomUUID();
+          attachments.push({id,name:file.name,label:file.name,file,type:file.type,size:file.size});
+          addFilePreview(id,file.name);
+        }
+        fileInputEl.value='';
+      });
+      function addFilePreview(id,label){
+        const item=document.createElement('div');item.classList.add('file-item');item.dataset.id=id;item.textContent=label;
+        const remove=document.createElement('span');remove.classList.add('remove-file');remove.textContent='✕';
+        remove.addEventListener('click',()=>{attachments=attachments.filter(a=>a.id!==id);item.remove()});
+        item.appendChild(remove);filePreview.appendChild(item);
+      }
+
+      /* ---------- Voice ---------- */
+      voiceBtn.addEventListener('click',async ()=>{
+        if(!isRecording){
+          try{
+            const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+            const mimeType=
+              MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':
+              MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/webm';
+            const ext=mimeType.includes('mp4')?'m4a':'webm';
+            mediaRecorder=new MediaRecorder(stream,{mimeType});
+            audioChunks=[];
+            mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0) audioChunks.push(e.data)};
+            mediaRecorder.onstop=async ()=>{
+              const blob=new Blob(audioChunks,{type:mimeType});
+              const filename=`voice-message.${ext}`;
+              const voiceFile=new File([blob],filename,{type:mimeType});
+              const id=crypto.randomUUID();
+              attachments.push({id,name:voiceFile.name,label:'Voice message',file:voiceFile,type:voiceFile.type,size:voiceFile.size});
+              addFilePreview(id,'Voice message');
+              stream.getTracks().forEach(t=>t.stop());
+            };
+            mediaRecorder.start();voiceBtn.classList.add('recording');isRecording=true;
+          }catch(err){console.error('Voice recording error:',err)}
+        }else{
+          mediaRecorder.stop();voiceBtn.classList.remove('recording');isRecording=false;
+        }
+      });
+
+      /* ---------- Confirm Clear ---------- */
+      const yesBtn=confirmDialog.querySelector('.yes');
+      const noBtn=confirmDialog.querySelector('.no');
+      yesBtn.addEventListener('click',async ()=>{
+        messagesContainer.innerHTML='';hideSuggestions();confirmDialog.classList.remove('show');
+        try{
+          await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clearChat:'True',sessionId:sessionId})});
+        }catch(e){console.error('Error sending clear chat payload:',e)}
+        if(userName){
+          insertBotMessage(`Hey ${userName}! 👋<br/>Welcome back to <strong>HiveMind AI</strong>. What would you like to automate?`);
+          showSuggestions([
+            'Sales Automations',
+            'CRM Automations',
+            'Ecommerce Automations',
+            'Marketing Automations',
+            'Customer Service Automations',
+            'Operations Automations',
+            'Data & Reporting Automations'
+          ]);
+        }
+      });
+      noBtn.addEventListener('click',()=>{confirmDialog.classList.remove('show')});
+
+      /* ---------- Suggestions ---------- */
+      function showSuggestions(options){
+        hideSuggestions();
+        suggestionContainer=document.createElement('div');suggestionContainer.id='suggestion-container';
+        options.forEach(opt=>{
+          const btn=document.createElement('button');btn.classList.add('suggestion-btn');btn.textContent=opt;
+          btn.addEventListener('click',(event)=>{
+            btn.classList.add('selected');createRipple(event);
+            setTimeout(()=>{handleSuggestion(opt)},200);
+          });
+          suggestionContainer.appendChild(btn);
+        });
+        messagesContainer.appendChild(suggestionContainer);scrollToBottom();
+      }
+      function hideSuggestions(){if(suggestionContainer){suggestionContainer.remove();suggestionContainer=null}}
+      function handleSuggestion(choice){
+        if(isWaiting) return;
+        hideSuggestions();insertUserMessage(choice);
+        sendChoiceMessage(`I’m interested in ${choice}.`);
+      }
+      async function sendChoiceMessage(message){
+        if(!userName||isWaiting) return;
+        isWaiting=true;chatInput.disabled=true;sendBtn.disabled=true;attachBtn.disabled=true;voiceBtn.disabled=true;showTyping();
+        try{
+          const response=await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chatmessage:message,sessionId:sessionId,messageType:'text'})});
+          const data=await response.json();hideTyping();
+          if(data&&data.response){insertBotMessage(data.response);}else{insertBotMessage('Sorry, an unexpected response was received.')}
+        }catch(error){
+          hideTyping();insertBotMessage('Sorry, there was an error contacting our service.');console.error('Webhook error:',error);
+        }
+        isWaiting=false;chatInput.disabled=false;sendBtn.disabled=false;attachBtn.disabled=false;voiceBtn.disabled=false;
+      }
+
+      /* ---------- Ripple ---------- */
+      function createRipple(event){
+        const button=event.currentTarget;const circle=document.createElement('span');
+        const diameter=Math.max(button.clientWidth,button.clientHeight);const radius=diameter/2;
+        circle.classList.add('ripple');circle.style.width=circle.style.height=`${diameter}px`;
+        const rect=button.getBoundingClientRect();
+        circle.style.left=`${event.clientX-rect.left-radius}px`;circle.style.top=`${event.clientY-rect.top-radius}px`;
+        const ripples=button.getElementsByClassName('ripple');while(ripples[0]){ripples[0].remove()}button.appendChild(circle);
+      }
+      [chatButton,sendBtn,startBtn].forEach(btn=>btn.addEventListener('click',createRipple));
+
+      /* Init */
+      populateFaq();
+      faqToggle.style.display='none';
+      clearChatBtn.style.display='none';
+    }
+
+    /* ---------- Lazy init ---------- */
+    (function(){
+      let hivemindInitialized=false;
+      function initOnce(){if(hivemindInitialized) return;hivemindInitialized=true;initHiveMindChatbot()}
+      const bubbleContainer=document.getElementById('hivemind-chatbot');
+      if(window.IntersectionObserver&&bubbleContainer){
+        const observer=new IntersectionObserver(entries=>{if(entries[0].isIntersecting){initOnce();observer.disconnect()}});
+        observer.observe(bubbleContainer);
+      }
+      ['scroll','mousemove','touchstart','keydown','click'].forEach(evt=>{
+        window.addEventListener(evt,function handler(){initOnce();window.removeEventListener(evt,handler,true)},{capture:true,passive:true});
+      });
+    })();
+  </script>
+</body>
+</html>
