@@ -466,7 +466,7 @@
         sessionId=phone.replace(/\s+/g,'');userName=name;
         chatInput.disabled=false;sendBtn.disabled=false;attachBtn.disabled=false;voiceBtn.disabled=false;
 
-        insertBotMessage(`Hey ${name}! 👋<br/>Welcome to <strong>HiveMind AI</strong> — we build intelligent automations that supercharge your team.<br/><br/><em>Pick an area below to begin, or just type your question.</em>`);
+        insertBotMessage(`Hey ${name}! 👋<br/>Welcome to HiveMind AI. We build intelligent AI Hiveminds that supercharge your team and process's.<br/><br/><em>To get started, pick a Hivemind, or just type your question.</em>`);
         showSuggestions(STARTER_OPTIONS);
 
         faqToggle.style.display='inline-flex';
@@ -496,9 +496,9 @@
 
       /* ---- FAQ ---- */
       const FAQ_ITEMS=[
-        {q:'What types of automations do you build?',a:'Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations: HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more.'},
+        {q:'What types of automated Hiveminds do you build?',a:'Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations: HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more. Which of these AI Hiveminds would best help you'},
         {q:'How long does an implementation take?',a:'Most pilots are 1–2 weeks. Larger rollouts: 3–6 weeks depending on scope.'},
-        {q:'Do you support Salesforce/HubSpot?',a:'Yes — lead routing, enrichment, deduping, sequences, opportunity alerts, tickets, etc.'},
+        {q:'Do you support Salesforce/HubSpot?',a:'Yes, we build automated AI Hiveminds for lead routing, enrichment, deduping, sequences, opportunity alerts, tickets, etc.'},
         {q:'What is your process?',a:'Discovery → map workflows → quick wins → pilot → iterate → scale.'},
         {q:'Can you work with our data warehouse?',a:'Yes: BigQuery, Redshift, Snowflake, Postgres.'},
         {q:'Do you offer a proof of concept?',a:'Yes — fixed-scope POC to validate ROI.'}
