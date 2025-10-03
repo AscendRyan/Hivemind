@@ -6,6 +6,11 @@ import { Helmet } from "react-helmet-async";
 import { Calendar, Clock, ArrowRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+type WPMediaSize = { source_url?: string };
+type WPFeatured = {
+  source_url?: string;
+  media_details?: { sizes?: Record<string, WPMediaSize> };
+};
 type WPPost = {
   id: number;
   date: string;
@@ -18,12 +23,7 @@ type WPPost = {
   jetpack_featured_media_url?: string; // optional Jetpack fallback
   _embedded?: {
     author?: { name: string }[];
-    "wp:featuredmedia"?: Array<{
-      source_url?: string;
-      media_details?: {
-        sizes?: Record<string, { source_url?: string }>;
-      };
-    }>;
+    "wp:featuredmedia"?: WPFeatured[];
     "wp:term"?: { name: string }[][];
   };
 };
@@ -47,24 +47,29 @@ function stripHTML(html: string) {
   return tmp.textContent || tmp.innerText || "";
 }
 
-// Safely pick the best featured image URL
+/**
+ * Prefer smaller CDN-sized images first.
+ * Order: medium_large (≈768w) → medium (≈300w) → thumbnail → full → jetpack fallback.
+ */
 function getFeaturedSrc(p: WPPost) {
-  const m = p._embedded?.["wp:featuredmedia"]?.[0] as any;
+  const m = p._embedded?.["wp:featuredmedia"]?.[0];
+  const sizes = m?.media_details?.sizes || {};
   return (
+    sizes?.medium_large?.source_url ||
+    sizes?.medium?.source_url ||
+    sizes?.thumbnail?.source_url ||
     m?.source_url ||
-    m?.media_details?.sizes?.medium_large?.source_url ||
-    m?.media_details?.sizes?.large?.source_url ||
-    m?.media_details?.sizes?.medium?.source_url ||
     p.jetpack_featured_media_url ||
     ""
   );
 }
 
-// Small helper to render external links that escape an iframe when needed
+/** Small helper to render external links that escape an iframe when needed */
 function ExternalLink(props: { href: string; className?: string; children: React.ReactNode }) {
   const { href, className, children } = props;
+  const extra = inIframe ? { target: "_top", rel: "noopener" } : {};
   return (
-    <a href={href} {...(inIframe ? { target: "_top", rel: "noopener" } : {})} className={className}>
+    <a href={href} {...extra} className={className}>
       {children}
     </a>
   );
@@ -77,30 +82,57 @@ export default function Blog() {
   const [hasMore, setHasMore] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
 
-  // Fetch a page of posts from WordPress (keep full _embed so featured images work)
+  // Fetch a page of posts from WordPress (embedded data but trimmed with _fields)
   async function load(pageNum: number) {
     setLoading(true);
+
     const base = `${WP_SITE}/wp-json/wp/v2/posts`;
     const params = new URLSearchParams({
       per_page: "6",
       page: String(pageNum),
       _embed: "1",
+      // Trim payload but keep what we actually use (author name, media sizes, terms)
+      _fields: [
+        "id",
+        "date",
+        "slug",
+        "link",
+        "title",
+        "excerpt",
+        "jetpack_featured_media_url",
+        "_embedded.wp:featuredmedia.source_url",
+        "_embedded.wp:featuredmedia.media_details.sizes",
+        "_embedded.author.name",
+        "_embedded.wp:term.name",
+      ].join(","),
     });
-    const res = await fetch(`${base}?${params.toString()}`);
-    if (!res.ok) {
-      setLoading(false);
+
+    const ctrl = new AbortController();
+    const signal = ctrl.signal;
+
+    try {
+      const res = await fetch(`${base}?${params.toString()}`, { signal });
+      if (!res.ok) throw new Error(String(res.status));
+      const data: WPPost[] = await res.json();
+      if (pageNum === 1) setPosts(data);
+      else setPosts((old) => [...old, ...data]);
+      setHasMore(data.length > 0);
+    } catch {
       setHasMore(false);
-      return;
+    } finally {
+      setLoading(false);
     }
-    const data: WPPost[] = await res.json();
-    if (pageNum === 1) setPosts(data);
-    else setPosts((old) => [...old, ...data]);
-    setHasMore(data.length > 0);
-    setLoading(false);
+
+    // If another load starts/unmounts, abort this one
+    return () => ctrl.abort();
   }
 
   useEffect(() => {
-    load(1);
+    const cleanup = load(1);
+    return () => {
+      if (typeof cleanup === "function") cleanup();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // categories from embedded terms
@@ -212,6 +244,9 @@ export default function Blog() {
                   src={getFeaturedSrc(featured) || "/api/placeholder/800/500"}
                   alt={stripHTML(featured.title.rendered) || "Featured image"}
                   loading="lazy"
+                  decoding="async"
+                  // avoid CLS without hardcoding width/height
+                  style={{ aspectRatio: "16 / 9" }}
                   className="w-full h-[300px] md:h-[360px] object-cover rounded-xl border border-glow"
                 />
                 <div className="absolute inset-0 rounded-xl glow"></div>
@@ -231,6 +266,8 @@ export default function Blog() {
                   src={getFeaturedSrc(post) || "/api/placeholder/400/250"}
                   alt={stripHTML(post.title.rendered) || "Post image"}
                   loading="lazy"
+                  decoding="async"
+                  style={{ aspectRatio: "16 / 9" }}
                   className="w-full h-40 object-cover rounded-lg mb-4 border border-glow"
                 />
                 <div className="text-xs mb-2 text-muted-foreground">
