@@ -56,6 +56,7 @@
       background:var(--primary-color); padding:12px 16px; border-bottom:1px solid #1e1835;
     }
     #chat-header h3{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+    /* NOTE: put hivemind-logo.png in /public so this path works */
     .hivemind-logo{width:24px;height:24px;object-fit:contain;border-radius:4px}
     #chat-header button{
       background:transparent;border:none;color:var(--secondary-color);
@@ -216,29 +217,31 @@
     <div id="chat-window">
       <div id="chat-header">
         <h3>
-          <img class="hivemind-logo" alt="HiveMind logo"
-               src="https://upload.wikimedia.org/wikipedia/commons/3/38/Hexagon_Icon.svg"/>
+          <!-- Put hivemind-logo.png into /public so this path works -->
+          <img class="hivemind-logo" alt="HiveMind logo" src="/hivemind-logo.png"/>
           HiveMind AI
         </h3>
         <div style="display:flex;align-items:center;gap:4px">
-          <!-- NEW: Minimize button -->
+          <!-- Minimize -->
           <button id="minimize-toggle" title="Minimize">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
               <path d="M19 13H5v-2h14v2z"/>
             </svg>
           </button>
-
-          <button id="clear-chat" title="Restart conversation">
+          <!-- Reset conversation -->
+          <button id="clear-chat" title="Reset conversation">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4.05 11a8 8 0 0 1 13.82-5.36L19 4"/><polyline points="23 4 19 4 19 8"/>
               <path d="M19.95 13a8 8 0 0 1-13.82 5.36L5 20"/><polyline points="1 20 5 20 5 16"/>
             </svg>
           </button>
+          <!-- FAQ toggle -->
           <button id="faq-toggle" title="Frequently Asked Questions">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1.93 7.93l-.64.64c-.89.88-1.29 1.48-1.29 2.43v.5h-2v-.5c0-1.22.49-2.06 1.36-2.94l1.2-1.19A2 2 0 1 0 10 6.5a2 2 0 1 0 4 0c0 .84-.35 1.64-.94 2.33zm-.92 8.57a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
             </svg>
           </button>
+          <!-- Fullscreen -->
           <button id="fullscreen-toggle" title="Expand to fullscreen">
             <svg id="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 9 9 9 9 3"/><polyline points="21 15 15 15 15 21"/>
@@ -260,7 +263,10 @@
           <div id="form-error"></div>
           <button id="start-btn">Start Chat</button>
         </div>
+
+        <!-- Starter suggestions appear below after greeting -->
         <div id="messages-container" class="hidden" aria-live="polite"></div>
+        <div id="suggestion-container"></div>
       </div>
 
       <div id="file-preview"></div>
@@ -283,10 +289,13 @@
                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.rtf,.csv,.html,.htm,.odt,.ods,.odp,image/*"/>
       </div>
 
+      <!-- FAQ side panel -->
       <div id="faq-panel"></div>
+
+      <!-- Confirm reset -->
       <div id="confirm-dialog">
         <div class="dialog-box">
-          <p>Clear the conversation and start over?</p>
+          <p>Reset the conversation?</p>
           <div class="dialog-actions">
             <button class="yes">Yes</button>
             <button class="no">No</button>
@@ -300,8 +309,8 @@
     function initHiveMindChatbot(){
       const chatButton=document.getElementById('chat-button');
       const chatWindow=document.getElementById('chat-window');
+      const minimizeToggle=document.getElementById('minimize-toggle');
       const clearChatBtn=document.getElementById('clear-chat');
-      const minimizeToggle=document.getElementById('minimize-toggle'); /* NEW */
       const formContainer=document.getElementById('form-container');
       const messagesContainer=document.getElementById('messages-container');
       const chatInputContainer=document.getElementById('chat-input-container');
@@ -321,11 +330,13 @@
       const fileInputEl=document.getElementById('file-input');
       const filePreview=document.getElementById('file-preview');
       const confirmDialog=document.getElementById('confirm-dialog');
+      const suggestionContainer=document.getElementById('suggestion-container');
 
       let attachments=[]; let isRecording=false; let mediaRecorder; let audioChunks=[];
-      let suggestionContainer=null; let userName=''; let isWaiting=false;
+      let userName=''; let isWaiting=false;
 
-      const WEBHOOK_URL='https://4flajfhr.rpcld.cc/webhook/afd20f14-dc8f-4833-b72b-b0dca66f1b92';
+      /* NEW WEBHOOK */
+      const WEBHOOK_URL='https://4flajfhr.rpcld.cc/webhook/6b67aeed-c789-493d-9ea4-aa689687503a';
       let sessionId=null;
 
       const tellParent = (type, payload={}) => { try { window.parent.postMessage({ type, ...payload }, "*"); } catch(e){} };
@@ -349,13 +360,9 @@
       // Initial: closed
       tellParent("hm:resize", { open:false });
 
-      // Internal toggle (still works if someone uses the internal bubble)
       chatButton.addEventListener('click',()=>{ chatWindow.classList.contains('open') ? closeChat() : openChat(); });
-
-      // NEW: Minimize button in header collapses the chat
       minimizeToggle.addEventListener('click', closeChat);
 
-      // Fullscreen: notify parent so it stretches the iframe
       fullscreenToggle.addEventListener('click',()=>{
         const isFull = chatWindow.classList.toggle('fullscreen');
         if(isFull){expandIcon.style.display='none';collapseIcon.style.display='block'}
@@ -363,51 +370,93 @@
         tellParent("hm:fullscreen", { full:isFull });
       });
 
-      // Listen to parent commands (open/close)
       window.addEventListener('message',(e)=>{
         const m = e.data || {};
         if(m.type==='hm:open')  openChat();
         if(m.type==='hm:close') closeChat();
       });
 
-      /* --- your existing chat logic follows (trimmed for brevity) --- */
+      /* ---- Utilities ---- */
       function scrollToBottom(){setTimeout(()=>{messagesContainer.scrollTop=messagesContainer.scrollHeight;},50)}
       function isValidUKMobile(n){ const c=n.replace(/\s+/g,''); return /^((\+44)?7\d{9}|07\d{9}|(\+\d{9,15}))$/.test(c); }
+      function createRipple(event){
+        const button=event.currentTarget;const circle=document.createElement('span');
+        const diameter=Math.max(button.clientWidth,button.clientHeight);const radius=diameter/2;
+        circle.classList.add('ripple');circle.style.width=circle.style.height=`${diameter}px`;
+        const rect=button.getBoundingClientRect();
+        circle.style.left=`${event.clientX-rect.left-radius}px`;circle.style.top=`${event.clientY-rect.top-radius}px`;
+        const ripples=button.getElementsByClassName('ripple');while(ripples[0]){ripples[0].remove()}button.appendChild(circle);
+      }
 
-      const faqs=[
-        {question:'What types of automations do you build?',answer:'We design AI-driven automations across Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting.'},
-        {question:'How long does an implementation take?',answer:'Most pilots are delivered in 1–2 weeks. Larger rollouts typically take 3–6 weeks.'},
-        {question:'Do you support Salesforce/HubSpot?',answer:'Yes—lead routing, enrichment, deduping, sequences, opportunity alerts, tickets, etc.'},
-        {question:'What is your process?',answer:'Discovery → map workflows → quick wins → pilot → iterate → scale.'},
-        {question:'Can you work with our data warehouse?',answer:'Yes: BigQuery, Redshift, Snowflake, Postgres.'},
-        {question:'Do you offer a proof of concept?',answer:'Yes—fixed-scope POC to validate ROI.'}
-      ];
-      function populateFaq(){ faqs.forEach(item=>{ const b=document.createElement('button'); b.className='faq-btn'; b.textContent=item.question;
-        b.addEventListener('click',()=>{ insertUserMessage(item.question); showTyping(); setTimeout(()=>{hideTyping();insertBotMessage(item.answer)},300); faqPanel.classList.remove('open'); });
-        faqPanel.appendChild(b); }); }
-
-      function insertUserMessage(t){ const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
+      /* ---- Messages ---- */
+      function insertUserMessage(t){
+        const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
         const row=document.createElement('div');row.className='message-row user';
         const bubble=document.createElement('div');bubble.className='message user';bubble.textContent=t;
         const meta=document.createElement('div');meta.className='meta';
         const ts=document.createElement('span');ts.className='timestamp';ts.textContent=time;
         const r=document.createElement('span');r.className='receipt';r.textContent='✓✓';
-        meta.appendChild(ts);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();}
-      function insertBotMessage(t){ const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
+        meta.appendChild(ts);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
+      }
+      function insertBotMessage(html){
+        const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});
         const row=document.createElement('div');row.className='message-row bot';
         const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent='H';row.appendChild(avatar);
-        const bubble=document.createElement('div');bubble.className='message bot';bubble.innerHTML=t;
+        const bubble=document.createElement('div');bubble.className='message bot';bubble.innerHTML=html;
         const meta=document.createElement('div');meta.className='meta';
         const ts=document.createElement('span');ts.className='timestamp';ts.textContent=time;
         const r=document.createElement('span');r.className='receipt';r.textContent='✓';
-        meta.appendChild(ts);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();}
-      let typingRow; function showTyping(){ typingRow=document.createElement('div');typingRow.className='message-row bot';
+        meta.appendChild(ts);meta.appendChild(r);bubble.appendChild(meta);row.appendChild(bubble);messagesContainer.appendChild(row);scrollToBottom();
+      }
+      let typingRow;
+      function showTyping(){
+        typingRow=document.createElement('div');typingRow.className='message-row bot';
         const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent='H';typingRow.appendChild(avatar);
         const bubble=document.createElement('div');bubble.className='message bot';
         const indicator=document.createElement('div');indicator.className='typing-indicator';indicator.innerHTML='<span></span><span></span><span></span>';
-        bubble.appendChild(indicator);typingRow.appendChild(bubble);messagesContainer.appendChild(typingRow);scrollToBottom();}
+        bubble.appendChild(indicator);typingRow.appendChild(bubble);messagesContainer.appendChild(typingRow);scrollToBottom();
+      }
       function hideTyping(){ if(typingRow){typingRow.remove();typingRow=null} }
 
+      /* ---- Starter suggestions ---- */
+      const STARTER_OPTIONS=[
+        'Sales Automations',
+        'CRM Automations',
+        'Ecommerce Automations',
+        'Marketing Automations',
+        'Customer Service Automations',
+        'Operations Automations',
+        'Data & Reporting Automations'
+      ];
+      function clearSuggestions(){ suggestionContainer.innerHTML=''; }
+      function showSuggestions(options){
+        clearSuggestions();
+        options.forEach(opt=>{
+          const btn=document.createElement('button');
+          btn.className='suggestion-btn'; btn.textContent=opt;
+          btn.addEventListener('click',e=>{
+            createRipple(e);
+            insertUserMessage(opt);
+            sendChoiceMessage(`I’m interested in ${opt}.`);
+            clearSuggestions();
+          });
+          suggestionContainer.appendChild(btn);
+        });
+      }
+      async function sendChoiceMessage(message){
+        if(!userName||isWaiting) return;
+        isWaiting=true; chatInput.disabled=true; sendBtn.disabled=true; attachBtn.disabled=true; voiceBtn.disabled=true;
+        showTyping();
+        try{
+          const payload={chatmessage:message,sessionId,messageType:'text'};
+          const response=await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          const data=await response.json(); hideTyping();
+          insertBotMessage((data&&data.response)?data.response:'Thanks! Tell me a bit more.');
+        }catch(err){ hideTyping(); insertBotMessage('Sorry, there was an error contacting our service.'); }
+        isWaiting=false; chatInput.disabled=false; sendBtn.disabled=false; attachBtn.disabled=false; voiceBtn.disabled=false;
+      }
+
+      /* ---- Start flow ---- */
       startBtn.addEventListener('click',()=>{
         const name=nameInput.value.trim(); const phone=phoneInput.value.trim();
         if(!name){formError.textContent='Please enter your name.';return;}
@@ -416,38 +465,106 @@
         messagesContainer.classList.remove('hidden');chatInputContainer.classList.remove('hidden');
         sessionId=phone.replace(/\s+/g,'');userName=name;
         chatInput.disabled=false;sendBtn.disabled=false;attachBtn.disabled=false;voiceBtn.disabled=false;
-        insertBotMessage(`Hey ${name}! 👋<br/>Welcome to <strong>HiveMind AI</strong>. What would you like to automate?`);
+
+        insertBotMessage(`Hey ${name}! 👋<br/>Welcome to <strong>HiveMind AI</strong> — we build intelligent automations that supercharge your team.<br/><br/><em>Pick an area below to begin, or just type your question.</em>`);
+        showSuggestions(STARTER_OPTIONS);
+
+        faqToggle.style.display='inline-flex';
+        clearChatBtn.style.display='inline-flex';
       });
 
+      /* ---- Send text ---- */
       async function sendMessage(){
         if(!userName||isWaiting) return;
         const text=chatInput.value.trim(); if(!text&&attachments.length===0) return;
-        insertUserMessage(text||'(attachment)'); chatInput.value=''; showTyping();
+        let messageContent=text;
+        insertUserMessage(messageContent||'(attachment)');
+        chatInput.value=''; showTyping();
         isWaiting=true; chatInput.disabled=true; sendBtn.disabled=true; attachBtn.disabled=true; voiceBtn.disabled=true;
+
         try{
           const payload={chatmessage:text,sessionId,messageType:'text'};
-          const res=await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-          const data=await res.json(); hideTyping();
-          insertBotMessage(data&&data.response?data.response:'Sorry, an unexpected response was received.');
+          const response=await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+          const data=await response.json(); hideTyping();
+          insertBotMessage((data&&data.response)?data.response:'Got it. Anything else?');
         }catch(err){ hideTyping(); insertBotMessage('Sorry, there was an error contacting our service.'); }
         isWaiting=false; chatInput.disabled=false; sendBtn.disabled=false; attachBtn.disabled=false; voiceBtn.disabled=false;
       }
       sendBtn.addEventListener('click',sendMessage);
       chatInput.addEventListener('keypress',e=>{if(e.key==='Enter'){e.preventDefault();sendMessage();}});
+      [sendBtn,startBtn,chatButton].forEach(b=>b&&b.addEventListener('click',createRipple));
 
+      /* ---- FAQ ---- */
+      const FAQ_ITEMS=[
+        {q:'What types of automations do you build?',a:'Sales, CRM, Ecommerce, Marketing, Customer Service, Operations, and Data/Reporting. Integrations: HubSpot, Salesforce, Shopify, Zendesk, Slack, Google Workspace, Make/n8n, and more.'},
+        {q:'How long does an implementation take?',a:'Most pilots are 1–2 weeks. Larger rollouts: 3–6 weeks depending on scope.'},
+        {q:'Do you support Salesforce/HubSpot?',a:'Yes — lead routing, enrichment, deduping, sequences, opportunity alerts, tickets, etc.'},
+        {q:'What is your process?',a:'Discovery → map workflows → quick wins → pilot → iterate → scale.'},
+        {q:'Can you work with our data warehouse?',a:'Yes: BigQuery, Redshift, Snowflake, Postgres.'},
+        {q:'Do you offer a proof of concept?',a:'Yes — fixed-scope POC to validate ROI.'}
+      ];
+      function populateFaq(){
+        faqPanel.innerHTML='';
+        FAQ_ITEMS.forEach(item=>{
+          const btn=document.createElement('button');
+          btn.className='faq-btn'; btn.textContent=item.q;
+          btn.addEventListener('click',()=>{
+            insertUserMessage(item.q); showTyping();
+            setTimeout(()=>{hideTyping(); insertBotMessage(item.a);},250);
+            faqPanel.classList.remove('open');
+          });
+          faqPanel.appendChild(btn);
+        });
+      }
+      populateFaq();
+      faqToggle.addEventListener('click',e=>{
+        e.stopPropagation();
+        faqPanel.classList.toggle('open');
+      });
+      document.addEventListener('click',e=>{
+        if(faqPanel.classList.contains('open') && !faqPanel.contains(e.target) && e.target!==faqToggle){
+          faqPanel.classList.remove('open');
+        }
+      });
+      faqToggle.style.display='none'; clearChatBtn.style.display='none';
+
+      /* ---- Reset conversation (sends { reset: true }) ---- */
       clearChatBtn.addEventListener('click',()=>{confirmDialog.classList.add('show')});
       const yesBtn=confirmDialog.querySelector('.yes'); const noBtn=confirmDialog.querySelector('.no');
       yesBtn.addEventListener('click',async ()=>{
-        messagesContainer.innerHTML='';confirmDialog.classList.remove('show');
-        try{ await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clearChat:'True',sessionId})}); }catch(e){}
+        confirmDialog.classList.remove('show');
+        messagesContainer.innerHTML=''; clearSuggestions();
+        formContainer.style.display=''; chatInputContainer.classList.add('hidden');
+        try{
+          await fetch(WEBHOOK_URL,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({ reset:true, sessionId })
+          });
+        }catch(e){}
+        // reset UI state
+        userName=''; sessionId=null; chatInput.value='';
+        faqToggle.style.display='none'; clearChatBtn.style.display='none';
       });
       noBtn.addEventListener('click',()=>{confirmDialog.classList.remove('show')});
 
-      populateFaq();
-      faqToggle.style.display='none'; clearChatBtn.style.display='none';
+      /* ---- Files (disabled UI by default; keep preview logic intact) ---- */
+      attachBtn.addEventListener('click',()=>fileInputEl.click());
+      fileInputEl.addEventListener('change',()=>{
+        const files=Array.from(fileInputEl.files||[]);
+        files.forEach(file=>{
+          const id=crypto.randomUUID();
+          attachments.push({id,name:file.name,label:file.name,file,type:file.type,size:file.size});
+          const item=document.createElement('div');item.className='file-item';item.dataset.id=id;item.textContent=file.name;
+          const rm=document.createElement('span');rm.className='remove-file';rm.textContent='✕';
+          rm.addEventListener('click',()=>{attachments=attachments.filter(a=>a.id!==id);item.remove()});
+          item.appendChild(rm);filePreview.appendChild(item);
+        });
+        fileInputEl.value='';
+      });
     }
 
-    // Lazy init
+    /* Lazy init */
     (function(){
       let inited=false; const init=()=>{ if(inited) return; inited=true; initHiveMindChatbot(); };
       const target=document.getElementById('hivemind-chatbot');
